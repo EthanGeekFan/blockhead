@@ -1,0 +1,23 @@
+{
+  "name": "blockhead",
+  "description": "Blockchain Implementation",
+  "version": "1.0.0",
+  "main": "test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EthanGeekFan/blockhead.git"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EthanGeekFan/blockhead/issues"
+  },
+  "homepage": "https://github.com/EthanGeekFan/blockhead#readme"
+}
