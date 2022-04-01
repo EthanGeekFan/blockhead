@@ -12,4 +12,4 @@ Blockchain Implementation
 ![Lora Xie](https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=lora-x&theme=nord_bright)
 
 ### Alan
-
+![Alan](https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=alanz6&theme=nord_bright)
