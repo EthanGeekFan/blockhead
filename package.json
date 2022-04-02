@@ -23,5 +23,9 @@
   "bugs": {
     "url": "https://github.com/EthanGeekFan/blockhead/issues"
   },
-  "homepage": "https://github.com/EthanGeekFan/blockhead#readme"
+  "homepage": "https://github.com/EthanGeekFan/blockhead#readme",
+  "dependencies": {
+    "canonicalize": "^1.0.8",
+    "net": "^1.0.2"
+  }
 }
