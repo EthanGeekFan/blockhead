@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.server = void 0;
 // Include Nodejs' net module.
 const Net = require("net");
+const constants_1 = require("./constants");
 const blockhead_1 = require("./blockhead");
 // The port on which the server is listening.
 const port = 18018;
@@ -17,8 +18,12 @@ exports.server = server;
 server.listen(port, function () {
     console.log(`Server listening for connection requests on socket localhost:${port}.`);
 });
+console.log("init server");
 // When a client requests a connection with the server, the server creates a new
 // socket dedicated to that client.
 server.on('connection', function (socket) {
+    console.log(`A client has connected with socket: ${socket.remoteAddress}:${socket.remotePort}.`);
     const head = new blockhead_1.Blockhead(socket);
+    head.sendMessage(constants_1.MESSAGES.HELLO);
+    head.sendMessage(constants_1.MESSAGES.GETPEERS);
 });

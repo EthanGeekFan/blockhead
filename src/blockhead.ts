@@ -1,4 +1,4 @@
-import { MESSAGES } from "./constants";
+import { ERRORS, MESSAGES } from "./constants";
 import Net = require("net");
 import canonicalize from "canonicalize";
 import fs = require("fs");
@@ -24,6 +24,7 @@ class Blockhead {
         this.socket.on("connect", () => {
             this.sendMessage(MESSAGES.HELLO);
             this.sendMessage(MESSAGES.GETPEERS);
+            logger.verbose(`Sent HELLO and GETPEERS message to the server.`);
         });
 
         // The server can also receive data from the client by reading from its socket.
@@ -36,16 +37,29 @@ class Blockhead {
                     const message = JSON.parse(this.buffer);
                     logger.info(`Message received from client: ${canonicalize(message)}.`);
                     if (!this.handshake) {
-                        if (message.type === MESSAGES.HELLO.type && semver.satisfies(message.version, "0.8.x")) {
+                        if (message.type === MESSAGES.HELLO.type) {
+                            if (!semver.satisfies(message.version, "0.8.x")) {
+                                this.sendMessage(MESSAGES.ERROR(ERRORS.INVVERSION));
+                                socket.end();
+                                return;
+                            }
                             this.handshake = true;
+                            return;
                         } else {
-                            this.sendMessage(MESSAGES.ERROR);
+                            this.sendMessage(MESSAGES.ERROR(ERRORS.NOHELLO));
                             socket.end();
                             return;
                         }
                     }
                     // Handle messages
+                    logger.verbose(`Handling message: ${canonicalize(message)}.`);
                     switch (message.type) {
+                        case MESSAGES.HELLO.type:
+                            if (!semver.satisfies(message.version, "0.8.x")) {
+                                this.sendMessage(MESSAGES.ERROR(ERRORS.INVVERSION));
+                                return;
+                            }
+                            break;
                         case MESSAGES.PEERS().type:
                             // read peers database
                             let peersDB = readPeers();
@@ -77,12 +91,12 @@ class Blockhead {
                         case MESSAGES.CHAINTIP().type:
                             break;
                         default:
-                            this.sendMessage(MESSAGES.ERROR);
+                            this.sendMessage(MESSAGES.ERROR(ERRORS.INVTYPE));
                             break;
                     }
                 } catch (error) {
                     logger.error("error: " + error);
-                    this.sendMessage(MESSAGES.ERROR);
+                    this.sendMessage(MESSAGES.ERROR(ERRORS.INVJSON));
                 } finally {
                     this.buffer = "";
                 }
@@ -98,7 +112,7 @@ class Blockhead {
 
         // Don't forget to catch error, for your own sake.
         socket.on('error', function(err) {
-            logger.error(`Error: ${err}`);
+            logger.error(err);
         });
     }
 

@@ -19,10 +19,16 @@ server.listen(port, function() {
     console.log(`Server listening for connection requests on socket localhost:${port}.`);
 });
 
+console.log("init server");
+
+
 // When a client requests a connection with the server, the server creates a new
 // socket dedicated to that client.
-server.on('connection', function(socket) {
+server.on('connection', function (socket) {
+    console.log(`A client has connected with socket: ${socket.remoteAddress}:${socket.remotePort}.`);
     const head = new Blockhead(socket);
+    head.sendMessage(MESSAGES.HELLO);
+    head.sendMessage(MESSAGES.GETPEERS);
 });
 
 export { server };

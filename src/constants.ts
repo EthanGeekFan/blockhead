@@ -1,15 +1,24 @@
 import { Peer } from "./utils";
 import _ = require("lodash");
 
+const ERRORS = {
+    NOHELLO: "Expected HELLO message before conversation.",
+    INVTYPE: "Invalid message type.",
+    INVVERSION: "Invalid version.",
+    INVJSON: "Invalid json message.",
+}
+
 const MESSAGES = {
     HELLO: {
         "type": "hello",
         "version": "0.8.0",
         "agent": "Marabu-Core Client 0.8"
     },
-    ERROR: {
-        "type": "error",
-        "error": "Unsupported message type received"
+    ERROR: (message: string = ERRORS.INVTYPE) => {
+        return {
+            "type": "error",
+            "error": message
+        }
     },
     GETPEERS: {
         "type": "getpeers"
@@ -60,5 +69,6 @@ const MESSAGES = {
 
 
 export {
-    MESSAGES
+    MESSAGES,
+    ERRORS,
 };

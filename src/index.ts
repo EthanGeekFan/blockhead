@@ -15,4 +15,8 @@ peers.map(async (peer: Peer) => {
     }
 });
 
+if (server) {
+    console.log("yyds");
+}
+
 console.log(canonicalize(peers));
