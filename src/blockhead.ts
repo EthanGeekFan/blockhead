@@ -97,6 +97,9 @@ class Blockhead {
                 } catch (error) {
                     logger.error("error: " + error);
                     this.sendMessage(MESSAGES.ERROR(ERRORS.INVJSON));
+                    if (!this.handshake) {
+                        socket.end();
+                    }
                 } finally {
                     this.buffer = "";
                 }
