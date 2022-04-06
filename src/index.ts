@@ -1,16 +1,18 @@
 import { createClient } from "./client";
-import { server } from "./server";
 import canonicalize from 'canonicalize';
+import { server } from "./server";
+import { readPeers, Peer, validatePeer } from "./utils";
+import _ = require('lodash');
 
-const json = {
-    "name": "John Doe",
-    "age": 30,
-    "address": {
-        "street": "Main Street",
-        "city": "New York",
-        "state": "NY",
-        "zip": "10001"
+let peers = readPeers();
+const trustedPeers = require('./trustedPeers.json');
+
+peers = _.shuffle(peers).slice(0, 10).concat(trustedPeers);
+
+peers.map(async (peer: Peer) => {
+    if (validatePeer(peer)) {
+        const client = createClient(peer);
     }
-}
+});
 
-console.log(canonicalize(json));
+console.log(canonicalize(peers));
