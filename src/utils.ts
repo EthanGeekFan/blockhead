@@ -23,7 +23,7 @@ interface Peer {
 
 function readPeers(): Peer[] {
     try {
-        const peers = JSON.parse(fs.readFileSync("./build/peers.json").toString());
+        const peers = JSON.parse(fs.readFileSync("./build/src/peers.json").toString());
         return peers;
     } catch (e) {
         console.log('JSON parse error on peers.json');
@@ -33,7 +33,7 @@ function readPeers(): Peer[] {
 }
 
 function writePeers(peers: Peer[]) {
-    fs.writeFileSync("./build/peers.json", JSON.stringify(peers, null, 4));
+    fs.writeFileSync("./build/src/peers.json", JSON.stringify(peers, null, 4));
 }
 
 function validatePeer(peer: Peer): boolean {

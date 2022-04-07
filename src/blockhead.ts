@@ -63,6 +63,7 @@ class Blockhead {
                         case MESSAGES.PEERS().type:
                             // read peers database
                             let peersDB = readPeers();
+                            const trustedPeers = require("./trustedPeers.json");
                             message.peers.map((peer: string) => {
                                 const split = peer.lastIndexOf(":");
                                 const host = peer.substring(0, split);
