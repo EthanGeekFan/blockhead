@@ -6,6 +6,7 @@ const ERRORS = {
     INVTYPE: "Invalid message type.",
     INVVERSION: "Invalid version.",
     INVJSON: "Invalid json message.",
+    TIMEOUT: "Message not received in a reasonable time.",
 }
 
 const MESSAGES = {

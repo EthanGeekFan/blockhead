@@ -17,7 +17,7 @@ const logger = (0, winston_1.createLogger)({
 exports.logger = logger;
 function readPeers() {
     try {
-        const peers = JSON.parse(fs.readFileSync("./build/peers.json").toString());
+        const peers = JSON.parse(fs.readFileSync("./build/src/peers.json").toString());
         return peers;
     }
     catch (e) {
@@ -28,7 +28,7 @@ function readPeers() {
 }
 exports.readPeers = readPeers;
 function writePeers(peers) {
-    fs.writeFileSync("./build/peers.json", JSON.stringify(peers, null, 4));
+    fs.writeFileSync("./build/src/peers.json", JSON.stringify(peers, null, 4));
 }
 exports.writePeers = writePeers;
 function validatePeer(peer) {

@@ -6,6 +6,7 @@ import { logger, Peer, readPeers, validatePeer, writePeers } from "./utils";
 import _ = require("lodash");
 import semver = require("semver");
 
+const TIMEOUT_MS = 1000;
 
 const delimiter = '\n';
 
@@ -13,11 +14,13 @@ class Blockhead {
     buffer: string;
     handshake: boolean;
     socket: Net.Socket;
+    timeout: any;
 
     constructor(socket: Net.Socket) {
         this.buffer = "";
         this.handshake = false;
         this.socket = socket;
+        this.timeout = null;
 
         // Now that a TCP connection has been established, the server can send data to
         // the client by writing to its socket.
@@ -32,6 +35,9 @@ class Blockhead {
             logger.verbose(`Data received from client: ${chunk.toString().trim()}.`);
             const deliminatedChunk: string[] = chunk.toString().split(delimiter);
             while (deliminatedChunk.length > 1) {
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                }
                 this.buffer += deliminatedChunk.shift();
                 try {
                     const message = JSON.parse(this.buffer);
@@ -106,6 +112,12 @@ class Blockhead {
                 }
             }
             this.buffer += deliminatedChunk[0];
+            if (this.buffer.length > 0) {
+                this.timeout = setTimeout(() => {
+                    this.sendMessage(MESSAGES.ERROR(ERRORS.TIMEOUT));
+                    socket.end();
+                }, TIMEOUT_MS);
+            }
         });
 
         // When the client requests to end the TCP connection with the server, the server

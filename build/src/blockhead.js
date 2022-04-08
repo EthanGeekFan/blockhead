@@ -9,12 +9,14 @@ const canonicalize_1 = __importDefault(require("canonicalize"));
 const utils_1 = require("./utils");
 const _ = require("lodash");
 const semver = require("semver");
+const TIMEOUT_MS = 1000;
 const delimiter = '\n';
 class Blockhead {
     constructor(socket) {
         this.buffer = "";
         this.handshake = false;
         this.socket = socket;
+        this.timeout = null;
         // Now that a TCP connection has been established, the server can send data to
         // the client by writing to its socket.
         this.socket.on("connect", () => {
@@ -27,6 +29,9 @@ class Blockhead {
             utils_1.logger.verbose(`Data received from client: ${chunk.toString().trim()}.`);
             const deliminatedChunk = chunk.toString().split(delimiter);
             while (deliminatedChunk.length > 1) {
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                }
                 this.buffer += deliminatedChunk.shift();
                 try {
                     const message = JSON.parse(this.buffer);
@@ -59,6 +64,7 @@ class Blockhead {
                         case constants_1.MESSAGES.PEERS().type:
                             // read peers database
                             let peersDB = (0, utils_1.readPeers)();
+                            const trustedPeers = require("./trustedPeers.json");
                             message.peers.map((peer) => {
                                 const split = peer.lastIndexOf(":");
                                 const host = peer.substring(0, split);
@@ -103,6 +109,12 @@ class Blockhead {
                 }
             }
             this.buffer += deliminatedChunk[0];
+            if (this.buffer.length > 0) {
+                this.timeout = setTimeout(() => {
+                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.TIMEOUT));
+                    socket.end();
+                }, TIMEOUT_MS);
+            }
         });
         // When the client requests to end the TCP connection with the server, the server
         // ends the connection.
