@@ -10,7 +10,7 @@ echo "Version: $version"
 
 function stop_db
 {
-    # Check if the saferdb container is running
+    # Check if the blockhead container is running
     docker container inspect blockhead > /dev/null 2>&1
     if [ $? -ne 0 ]
     then
@@ -22,7 +22,7 @@ function stop_db
     echo "${YELLOW}Stopping blockhead container...${NC}"
     (docker stop blockhead || docker rm blockhead) > /dev/null 2>&1
 
-    # Check if the saferdb container is still running
+    # Check if the blockhead container is still running
     docker container inspect blockhead > /dev/null 2>&1
     if [ $? -eq 0 ]
     then

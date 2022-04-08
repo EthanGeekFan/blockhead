@@ -29,9 +29,9 @@ class Blockhead {
             utils_1.logger.verbose(`Data received from client: ${chunk.toString().trim()}.`);
             const deliminatedChunk = chunk.toString().split(delimiter);
             while (deliminatedChunk.length > 1) {
-                if (this.timeout) {
-                    clearTimeout(this.timeout);
-                }
+                // if (this.timeout) {
+                //     clearTimeout(this.timeout);
+                // }
                 this.buffer += deliminatedChunk.shift();
                 try {
                     const message = JSON.parse(this.buffer);
@@ -110,10 +110,10 @@ class Blockhead {
             }
             this.buffer += deliminatedChunk[0];
             if (this.buffer.length > 0) {
-                this.timeout = setTimeout(() => {
-                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.TIMEOUT));
-                    socket.end();
-                }, TIMEOUT_MS);
+                // this.timeout = setTimeout(() => {
+                //     this.sendMessage(MESSAGES.ERROR(ERRORS.TIMEOUT));
+                //     socket.end();
+                // }, TIMEOUT_MS);
             }
         });
         // When the client requests to end the TCP connection with the server, the server

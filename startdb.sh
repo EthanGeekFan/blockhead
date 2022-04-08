@@ -10,7 +10,7 @@ echo "Version: $version"
 
 function start_db
 {
-    # Check if the saferdb container is already running
+    # Check if the blockhead container is already running
     docker container inspect blockhead > /dev/null 2>&1
     if [ $? -eq 0 ]
     then
