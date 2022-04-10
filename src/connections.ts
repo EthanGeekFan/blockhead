@@ -1,9 +1,11 @@
 import { Blockhead } from './blockhead';
+import { logger } from './utils';
 
 let clients: Array<Blockhead> = [];
 
 function addClient(client: Blockhead) {
     clients.push(client);
+    logger.info(`Added new client: ${client.socket.remoteAddress}.`);
 }
 
 function getClients() {

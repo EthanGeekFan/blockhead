@@ -7,6 +7,7 @@ const ERRORS = {
     INVVERSION: "Invalid version.",
     INVJSON: "Invalid json message.",
     TIMEOUT: "Message not received in a reasonable time.",
+    INVSTRUCT: "Invalid structure.",
 }
 
 const MESSAGES = {
@@ -33,13 +34,13 @@ const MESSAGES = {
     GETOBJECT: (objectId: string = "") => {
         return {
             "type": "getobject",
-            "objectId": objectId
+            "objectid": objectId
         }
     },
     IHAVEOBJECT: (objectId: string = "") => {
         return {
             "type": "ihaveobject",
-            "objectId": objectId
+            "objectid": objectId
         }
     },
     OBJECT: (object: any = {}) => {

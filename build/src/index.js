@@ -18,7 +18,6 @@ const server_1 = require("./server");
 const utils_1 = require("./utils");
 const _ = require("lodash");
 const database_1 = require("./database");
-const connections_1 = require("./connections");
 function start() {
     return __awaiter(this, void 0, void 0, function* () {
         yield (0, database_1.initDatabase)();
@@ -28,7 +27,6 @@ function start() {
         peers.map((peer) => __awaiter(this, void 0, void 0, function* () {
             if ((0, utils_1.validatePeer)(peer)) {
                 const client = (0, client_1.createClient)(peer);
-                (0, connections_1.addClient)(client);
             }
         }));
         if (server_1.server) {

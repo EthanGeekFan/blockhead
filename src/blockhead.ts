@@ -9,6 +9,8 @@ import { Transaction } from "./models";
 import { addClient, getClients, removeClient } from "./connections";
 import mongoose = require("mongoose");
 
+// TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
+
 const TIMEOUT_MS = 1000;
 
 const delimiter = '\n';
@@ -83,7 +85,7 @@ class Blockhead {
                                     const port = parseInt(peer.substring(split + 1));
                                     peersDB.push({ host, port });
                                     peersDB = _.uniqBy(peersDB, (p) => `${p.host}:${p.port}`);
-                                    peersDB = _.filter(peersDB, validatePeer);
+                                    peersDB = _.filter(peersDB, (p) => validatePeer(p));
                                     writePeers(peersDB);
                                 });
                                 break;
@@ -95,6 +97,10 @@ class Blockhead {
                             }
                         case MESSAGES.GETOBJECT().type:
                             {
+                                if (!message.objectid) {
+                                    this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                    return;
+                                }
                                 const objectId = message.objectid;
                                 Transaction
                                     .findOne({ objectId: objectId })
@@ -113,6 +119,10 @@ class Blockhead {
                             };
                         case MESSAGES.IHAVEOBJECT().type:
                             {
+                                if (!message.objectid) {
+                                    this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                    return;
+                                }
                                 Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
                                     if (!transaction) {
                                         this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
@@ -123,6 +133,10 @@ class Blockhead {
                             }
                         case MESSAGES.OBJECT().type:
                             {
+                                if (!message.object) {
+                                    this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                    return;
+                                }
                                 const obj = message.object;
                                 console.log(obj);
                                 const objectId = hash(canonicalize(obj)!.toString());
@@ -143,6 +157,7 @@ class Blockhead {
                                             // Broadcast to all peers
                                             getClients().map((client) => {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
+                                                logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
                                         }
                                     });

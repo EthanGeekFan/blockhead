@@ -11,6 +11,7 @@ const _ = require("lodash");
 const semver = require("semver");
 const models_1 = require("./models");
 const connections_1 = require("./connections");
+// TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 const TIMEOUT_MS = 1000;
 const delimiter = '\n';
 class Blockhead {
@@ -19,6 +20,7 @@ class Blockhead {
         this.handshake = false;
         this.socket = socket;
         this.timeout = null;
+        (0, connections_1.addClient)(this);
         // Now that a TCP connection has been established, the server can send data to
         // the client by writing to its socket.
         this.socket.on("connect", () => {
@@ -76,7 +78,7 @@ class Blockhead {
                                     const port = parseInt(peer.substring(split + 1));
                                     peersDB.push({ host, port });
                                     peersDB = _.uniqBy(peersDB, (p) => `${p.host}:${p.port}`);
-                                    peersDB = _.filter(peersDB, utils_1.validatePeer);
+                                    peersDB = _.filter(peersDB, (p) => (0, utils_1.validatePeer)(p));
                                     (0, utils_1.writePeers)(peersDB);
                                 });
                                 break;
@@ -88,6 +90,10 @@ class Blockhead {
                             }
                         case constants_1.MESSAGES.GETOBJECT().type:
                             {
+                                if (!message.objectid) {
+                                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
+                                    return;
+                                }
                                 const objectId = message.objectid;
                                 models_1.Transaction
                                     .findOne({ objectId: objectId })
@@ -108,6 +114,10 @@ class Blockhead {
                             ;
                         case constants_1.MESSAGES.IHAVEOBJECT().type:
                             {
+                                if (!message.objectid) {
+                                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
+                                    return;
+                                }
                                 models_1.Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
                                     if (!transaction) {
                                         this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.objectid));
@@ -118,6 +128,10 @@ class Blockhead {
                             }
                         case constants_1.MESSAGES.OBJECT().type:
                             {
+                                if (!message.object) {
+                                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
+                                    return;
+                                }
                                 const obj = message.object;
                                 console.log(obj);
                                 const objectId = (0, utils_1.hash)((0, canonicalize_1.default)(obj).toString());
@@ -138,6 +152,7 @@ class Blockhead {
                                             // Broadcast to all peers
                                             (0, connections_1.getClients)().map((client) => {
                                                 client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));
+                                                utils_1.logger.info(`Sent IHAVEOBJECT message to client: ${client.socket.remoteAddress}.`);
                                             });
                                         }
                                     });
