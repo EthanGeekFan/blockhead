@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validatePeer = exports.writePeers = exports.readPeers = exports.logger = void 0;
+exports.hash = exports.validatePeer = exports.writePeers = exports.readPeers = exports.logger = void 0;
 const winston_1 = require("winston");
+const crypto_1 = require("crypto");
 const fs = require("fs");
 const logger = (0, winston_1.createLogger)({
     level: "silly",
@@ -35,3 +36,7 @@ function validatePeer(peer) {
     return peer.host != "" && peer.port != null;
 }
 exports.validatePeer = validatePeer;
+function hash(data) {
+    return (0, crypto_1.createHash)("sha256").update(data).digest("hex");
+}
+exports.hash = hash;

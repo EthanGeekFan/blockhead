@@ -1,6 +1,5 @@
 // Include Nodejs' net module.
 import Net = require('net');
-import { MESSAGES } from './constants';
 import { Blockhead } from './blockhead';
 import { logger } from './utils';
 

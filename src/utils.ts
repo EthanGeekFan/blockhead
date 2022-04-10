@@ -1,4 +1,5 @@
 import { transports, format, createLogger } from "winston"
+import { createHash } from "crypto";
 import fs = require("fs");
 
 const logger = createLogger({
@@ -40,10 +41,15 @@ function validatePeer(peer: Peer): boolean {
     return peer.host != "" && peer.port != null;
 }
 
+function hash(data: string): string {
+    return createHash("sha256").update(data).digest("hex");
+}
+
 export {
     logger,
     readPeers,
     writePeers,
     validatePeer,
-    Peer
+    Peer,
+    hash,
 }

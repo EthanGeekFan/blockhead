@@ -12,29 +12,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("./client");
-const canonicalize_1 = __importDefault(require("canonicalize"));
-const server_1 = require("./server");
+exports.initDatabase = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const utils_1 = require("./utils");
-const _ = require("lodash");
-const database_1 = require("./database");
-const connections_1 = require("./connections");
-function start() {
+function initDatabase() {
     return __awaiter(this, void 0, void 0, function* () {
-        yield (0, database_1.initDatabase)();
-        let peers = (0, utils_1.readPeers)();
-        const trustedPeers = require('./trustedPeers.json');
-        peers = _.shuffle(peers).slice(0, 10).concat(trustedPeers);
-        peers.map((peer) => __awaiter(this, void 0, void 0, function* () {
-            if ((0, utils_1.validatePeer)(peer)) {
-                const client = (0, client_1.createClient)(peer);
-                (0, connections_1.addClient)(client);
-            }
-        }));
-        if (server_1.server) {
-            console.log("yyds");
-        }
-        console.log((0, canonicalize_1.default)(peers));
+        const dburi = "mongodb://localhost/blockhead";
+        const db = mongoose_1.default.connection;
+        // Add listeners
+        db.on('open', () => { utils_1.logger.info("Connected to MongoDB with URL: " + dburi); });
+        db.on('error', (err) => { utils_1.logger.error("Error connecting to MongoDB: " + err); });
+        yield mongoose_1.default.connect(dburi);
     });
 }
-start();
+exports.initDatabase = initDatabase;

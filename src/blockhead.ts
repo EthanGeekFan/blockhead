@@ -2,9 +2,11 @@ import { ERRORS, MESSAGES } from "./constants";
 import Net = require("net");
 import canonicalize from "canonicalize";
 import fs = require("fs");
-import { logger, Peer, readPeers, validatePeer, writePeers } from "./utils";
+import { hash, logger, Peer, readPeers, validatePeer, writePeers } from "./utils";
 import _ = require("lodash");
 import semver = require("semver");
+import { Transaction } from "./models";
+import { getClients } from "./connections";
 
 const TIMEOUT_MS = 1000;
 
@@ -61,34 +63,87 @@ class Blockhead {
                     logger.verbose(`Handling message: ${canonicalize(message)}.`);
                     switch (message.type) {
                         case MESSAGES.HELLO.type:
-                            if (!semver.satisfies(message.version, "0.8.x")) {
-                                this.sendMessage(MESSAGES.ERROR(ERRORS.INVVERSION));
-                                return;
+                            {
+                                if (!semver.satisfies(message.version, "0.8.x")) {
+                                    this.sendMessage(MESSAGES.ERROR(ERRORS.INVVERSION));
+                                    return;
+                                }
+                                break;
                             }
-                            break;
                         case MESSAGES.PEERS().type:
-                            // read peers database
-                            let peersDB = readPeers();
-                            const trustedPeers = require("./trustedPeers.json");
-                            message.peers.map((peer: string) => {
-                                const split = peer.lastIndexOf(":");
-                                const host = peer.substring(0, split);
-                                const port = parseInt(peer.substring(split + 1));
-                                peersDB.push({ host, port });
-                                peersDB = _.uniqBy(peersDB, (p) => `${p.host}:${p.port}`);
-                                // peersDB = _.filter(peersDB, validatePeer);
-                                writePeers(peersDB);
-                            });
-                            break;
+                            {
+                                // read peers database
+                                let peersDB = readPeers();
+                                const trustedPeers = require("./trustedPeers.json");
+                                message.peers.map((peer: string) => {
+                                    const split = peer.lastIndexOf(":");
+                                    const host = peer.substring(0, split);
+                                    const port = parseInt(peer.substring(split + 1));
+                                    peersDB.push({ host, port });
+                                    peersDB = _.uniqBy(peersDB, (p) => `${p.host}:${p.port}`);
+                                    peersDB = _.filter(peersDB, validatePeer);
+                                    writePeers(peersDB);
+                                });
+                                break;
+                            }
                         case MESSAGES.GETPEERS.type:
-                            this.sendMessage(MESSAGES.PEERS(readPeers()));
-                            break;
+                            {
+                                this.sendMessage(MESSAGES.PEERS(readPeers()));
+                                break;
+                            }
                         case MESSAGES.GETOBJECT().type:
-                            break;
+                            {
+                                const objectId = message.objectId;
+                                Transaction
+                                    .findById(objectId)
+                                    .select({ _id: 0 })
+                                    .then((transaction) => {
+                                    if (transaction) {
+                                        this.sendMessage(MESSAGES.OBJECT(transaction));
+                                    }
+                                    });
+                                // TODO: Block search
+                                break;
+                            };
                         case MESSAGES.IHAVEOBJECT().type:
-                            break;
+                            {
+                                Transaction.findById(message.objectid).then((transaction) => {
+                                    if (!transaction) {
+                                        this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
+                                    }
+                                });
+                                // TODO: Block search
+                                break;
+                            }
                         case MESSAGES.OBJECT().type:
-                            break;
+                            {
+                                const obj = message.object;
+                                const objectId = hash(canonicalize(obj)!.toString());
+                                if (obj.type === "transaction") {
+                                    logger.info(`Received transaction id: ${objectId}.`);
+                                    Transaction.findById(objectId).then((transaction) => {
+                                        if (!transaction) {
+                                            const newTransaction = new Transaction({
+                                                _id: objectId,
+                                                type: obj.type,
+                                                height: obj.height,
+                                                inputs: obj.inputs,
+                                                outputs: obj.outputs,
+                                            });
+                                            newTransaction.save();
+                                            logger.info(`Saved new transaction: ${JSON.stringify(canonicalize(obj)), null, 4}.`);
+                                            // Broadcast to all peers
+                                            getClients().map((client) => {
+                                                client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
+                                            });
+                                        }
+                                    });
+                                } else if (obj.type === "block") {
+                                    // TODO: Block search
+                                    logger.info(`Received block id: ${objectId}.`);
+                                }
+                                break;
+                            }
                         case MESSAGES.GETMEMPOOL.type:
                             break;
                         case MESSAGES.MEMPOOL().type:

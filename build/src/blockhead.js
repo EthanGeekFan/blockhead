@@ -9,6 +9,8 @@ const canonicalize_1 = __importDefault(require("canonicalize"));
 const utils_1 = require("./utils");
 const _ = require("lodash");
 const semver = require("semver");
+const models_1 = require("./models");
+const connections_1 = require("./connections");
 const TIMEOUT_MS = 1000;
 const delimiter = '\n';
 class Blockhead {
@@ -29,9 +31,9 @@ class Blockhead {
             utils_1.logger.verbose(`Data received from client: ${chunk.toString().trim()}.`);
             const deliminatedChunk = chunk.toString().split(delimiter);
             while (deliminatedChunk.length > 1) {
-                // if (this.timeout) {
-                //     clearTimeout(this.timeout);
-                // }
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                }
                 this.buffer += deliminatedChunk.shift();
                 try {
                     const message = JSON.parse(this.buffer);
@@ -56,34 +58,89 @@ class Blockhead {
                     utils_1.logger.verbose(`Handling message: ${(0, canonicalize_1.default)(message)}.`);
                     switch (message.type) {
                         case constants_1.MESSAGES.HELLO.type:
-                            if (!semver.satisfies(message.version, "0.8.x")) {
-                                this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVVERSION));
-                                return;
+                            {
+                                if (!semver.satisfies(message.version, "0.8.x")) {
+                                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVVERSION));
+                                    return;
+                                }
+                                break;
                             }
-                            break;
                         case constants_1.MESSAGES.PEERS().type:
-                            // read peers database
-                            let peersDB = (0, utils_1.readPeers)();
-                            const trustedPeers = require("./trustedPeers.json");
-                            message.peers.map((peer) => {
-                                const split = peer.lastIndexOf(":");
-                                const host = peer.substring(0, split);
-                                const port = parseInt(peer.substring(split + 1));
-                                peersDB.push({ host, port });
-                                peersDB = _.uniqBy(peersDB, (p) => `${p.host}:${p.port}`);
-                                // peersDB = _.filter(peersDB, validatePeer);
-                                (0, utils_1.writePeers)(peersDB);
-                            });
-                            break;
+                            {
+                                // read peers database
+                                let peersDB = (0, utils_1.readPeers)();
+                                const trustedPeers = require("./trustedPeers.json");
+                                message.peers.map((peer) => {
+                                    const split = peer.lastIndexOf(":");
+                                    const host = peer.substring(0, split);
+                                    const port = parseInt(peer.substring(split + 1));
+                                    peersDB.push({ host, port });
+                                    peersDB = _.uniqBy(peersDB, (p) => `${p.host}:${p.port}`);
+                                    peersDB = _.filter(peersDB, utils_1.validatePeer);
+                                    (0, utils_1.writePeers)(peersDB);
+                                });
+                                break;
+                            }
                         case constants_1.MESSAGES.GETPEERS.type:
-                            this.sendMessage(constants_1.MESSAGES.PEERS((0, utils_1.readPeers)()));
-                            break;
+                            {
+                                this.sendMessage(constants_1.MESSAGES.PEERS((0, utils_1.readPeers)()));
+                                break;
+                            }
                         case constants_1.MESSAGES.GETOBJECT().type:
-                            break;
+                            {
+                                const objectId = message.objectId;
+                                models_1.Transaction
+                                    .findById(objectId)
+                                    .select({ _id: 0 })
+                                    .then((transaction) => {
+                                    if (transaction) {
+                                        this.sendMessage(constants_1.MESSAGES.OBJECT(transaction));
+                                    }
+                                });
+                                // TODO: Block search
+                                break;
+                            }
+                            ;
                         case constants_1.MESSAGES.IHAVEOBJECT().type:
-                            break;
+                            {
+                                models_1.Transaction.findById(message.objectid).then((transaction) => {
+                                    if (!transaction) {
+                                        this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.objectid));
+                                    }
+                                });
+                                // TODO: Block search
+                                break;
+                            }
                         case constants_1.MESSAGES.OBJECT().type:
-                            break;
+                            {
+                                const obj = message.object;
+                                const objectId = (0, utils_1.hash)((0, canonicalize_1.default)(obj).toString());
+                                if (obj.type === "transaction") {
+                                    utils_1.logger.info(`Received transaction id: ${objectId}.`);
+                                    models_1.Transaction.findById(objectId).then((transaction) => {
+                                        if (!transaction) {
+                                            const newTransaction = new models_1.Transaction({
+                                                _id: objectId,
+                                                type: obj.type,
+                                                height: obj.height,
+                                                inputs: obj.inputs,
+                                                outputs: obj.outputs,
+                                            });
+                                            newTransaction.save();
+                                            utils_1.logger.info(`Saved new transaction: ${JSON.stringify((0, canonicalize_1.default)(obj)), null, 4}.`);
+                                            // Broadcast to all peers
+                                            (0, connections_1.getClients)().map((client) => {
+                                                client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));
+                                            });
+                                        }
+                                    });
+                                }
+                                else if (obj.type === "block") {
+                                    // TODO: Block search
+                                    utils_1.logger.info(`Received block id: ${objectId}.`);
+                                }
+                                break;
+                            }
                         case constants_1.MESSAGES.GETMEMPOOL.type:
                             break;
                         case constants_1.MESSAGES.MEMPOOL().type:
@@ -110,10 +167,10 @@ class Blockhead {
             }
             this.buffer += deliminatedChunk[0];
             if (this.buffer.length > 0) {
-                // this.timeout = setTimeout(() => {
-                //     this.sendMessage(MESSAGES.ERROR(ERRORS.TIMEOUT));
-                //     socket.end();
-                // }, TIMEOUT_MS);
+                this.timeout = setTimeout(() => {
+                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.TIMEOUT));
+                    socket.end();
+                }, TIMEOUT_MS);
             }
         });
         // When the client requests to end the TCP connection with the server, the server
