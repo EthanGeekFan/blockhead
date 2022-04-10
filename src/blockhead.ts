@@ -7,6 +7,7 @@ import _ = require("lodash");
 import semver = require("semver");
 import { Transaction } from "./models";
 import { getClients } from "./connections";
+import mongoose = require("mongoose");
 
 const TIMEOUT_MS = 1000;
 
@@ -93,21 +94,25 @@ class Blockhead {
                             }
                         case MESSAGES.GETOBJECT().type:
                             {
-                                const objectId = message.objectId;
+                                const objectId = message.objectid;
                                 Transaction
-                                    .findById(objectId)
-                                    .select({ _id: 0 })
+                                    .findOne({ objectId: objectId })
+                                    .select({ _id: 0, objectId: 0 })
+                                    .exec()
                                     .then((transaction) => {
-                                    if (transaction) {
-                                        this.sendMessage(MESSAGES.OBJECT(transaction));
-                                    }
+                                        if (transaction) {
+                                            logger.info(`Transaction found: ${canonicalize(transaction)}.`);
+                                            this.sendMessage(MESSAGES.OBJECT(transaction));
+                                        } else {
+                                            logger.info(`Transaction with objectId ${objectId} not found.`);
+                                        }
                                     });
                                 // TODO: Block search
                                 break;
                             };
                         case MESSAGES.IHAVEOBJECT().type:
                             {
-                                Transaction.findById(message.objectid).then((transaction) => {
+                                Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
                                     if (!transaction) {
                                         this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
                                     }
@@ -118,20 +123,22 @@ class Blockhead {
                         case MESSAGES.OBJECT().type:
                             {
                                 const obj = message.object;
+                                console.log(obj);
                                 const objectId = hash(canonicalize(obj)!.toString());
                                 if (obj.type === "transaction") {
                                     logger.info(`Received transaction id: ${objectId}.`);
-                                    Transaction.findById(objectId).then((transaction) => {
+                                    Transaction.findOne({ objectId: objectId }).exec().then((transaction) => {
+                                        logger.verbose("Transaction found: " + transaction);
                                         if (!transaction) {
                                             const newTransaction = new Transaction({
-                                                _id: objectId,
+                                                objectId: objectId,
                                                 type: obj.type,
                                                 height: obj.height,
                                                 inputs: obj.inputs,
                                                 outputs: obj.outputs,
                                             });
                                             newTransaction.save();
-                                            logger.info(`Saved new transaction: ${JSON.stringify(canonicalize(obj)), null, 4}.`);
+                                            logger.info(`Saved new transaction: ${JSON.stringify(canonicalize(obj), null, 4)}.`);
                                             // Broadcast to all peers
                                             getClients().map((client) => {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));

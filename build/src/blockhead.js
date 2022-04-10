@@ -88,13 +88,18 @@ class Blockhead {
                             }
                         case constants_1.MESSAGES.GETOBJECT().type:
                             {
-                                const objectId = message.objectId;
+                                const objectId = message.objectid;
                                 models_1.Transaction
-                                    .findById(objectId)
-                                    .select({ _id: 0 })
+                                    .findOne({ objectId: objectId })
+                                    .select({ _id: 0, objectId: 0 })
+                                    .exec()
                                     .then((transaction) => {
                                     if (transaction) {
+                                        utils_1.logger.info(`Transaction found: ${(0, canonicalize_1.default)(transaction)}.`);
                                         this.sendMessage(constants_1.MESSAGES.OBJECT(transaction));
+                                    }
+                                    else {
+                                        utils_1.logger.info(`Transaction with objectId ${objectId} not found.`);
                                     }
                                 });
                                 // TODO: Block search
@@ -103,7 +108,7 @@ class Blockhead {
                             ;
                         case constants_1.MESSAGES.IHAVEOBJECT().type:
                             {
-                                models_1.Transaction.findById(message.objectid).then((transaction) => {
+                                models_1.Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
                                     if (!transaction) {
                                         this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.objectid));
                                     }
@@ -114,20 +119,22 @@ class Blockhead {
                         case constants_1.MESSAGES.OBJECT().type:
                             {
                                 const obj = message.object;
+                                console.log(obj);
                                 const objectId = (0, utils_1.hash)((0, canonicalize_1.default)(obj).toString());
                                 if (obj.type === "transaction") {
                                     utils_1.logger.info(`Received transaction id: ${objectId}.`);
-                                    models_1.Transaction.findById(objectId).then((transaction) => {
+                                    models_1.Transaction.findOne({ objectId: objectId }).exec().then((transaction) => {
+                                        utils_1.logger.verbose("Transaction found: " + transaction);
                                         if (!transaction) {
                                             const newTransaction = new models_1.Transaction({
-                                                _id: objectId,
+                                                objectId: objectId,
                                                 type: obj.type,
                                                 height: obj.height,
                                                 inputs: obj.inputs,
                                                 outputs: obj.outputs,
                                             });
                                             newTransaction.save();
-                                            utils_1.logger.info(`Saved new transaction: ${JSON.stringify((0, canonicalize_1.default)(obj)), null, 4}.`);
+                                            utils_1.logger.info(`Saved new transaction: ${JSON.stringify((0, canonicalize_1.default)(obj), null, 4)}.`);
                                             // Broadcast to all peers
                                             (0, connections_1.getClients)().map((client) => {
                                                 client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));

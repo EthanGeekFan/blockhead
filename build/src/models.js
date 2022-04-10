@@ -14,7 +14,7 @@ const outpointSchema = new mongoose_1.default.Schema({
         type: Number,
         required: true
     }
-});
+}, { _id: false });
 const inputSchema = new mongoose_1.default.Schema({
     outpoint: {
         type: outpointSchema,
@@ -24,7 +24,7 @@ const inputSchema = new mongoose_1.default.Schema({
         type: String,
         required: true
     }
-});
+}, { _id: false });
 const outputSchema = new mongoose_1.default.Schema({
     pubkey: {
         type: String,
@@ -34,8 +34,14 @@ const outputSchema = new mongoose_1.default.Schema({
         type: Number,
         required: true
     }
-});
+}, { _id: false });
 const transactionSchema = new mongoose_1.default.Schema({
+    objectId: {
+        type: String,
+        required: true,
+        index: true,
+        unique: true,
+    },
     type: {
         type: String,
         required: true
@@ -48,6 +54,6 @@ const transactionSchema = new mongoose_1.default.Schema({
         type: [outputSchema],
         required: true
     },
-});
+}, { versionKey: false });
 const Transaction = mongoose_1.default.model("Transaction", transactionSchema);
 exports.Transaction = Transaction;
