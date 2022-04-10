@@ -5,6 +5,7 @@ exports.server = void 0;
 const Net = require("net");
 const constants_1 = require("./constants");
 const blockhead_1 = require("./blockhead");
+const connections_1 = require("./connections");
 // The port on which the server is listening.
 const port = 18018;
 // Message delimiter.
@@ -24,6 +25,7 @@ console.log("init server");
 server.on('connection', function (socket) {
     console.log(`A client has connected with socket: ${socket.remoteAddress}:${socket.remotePort}.`);
     const head = new blockhead_1.Blockhead(socket);
+    (0, connections_1.addClient)(head);
     head.sendMessage(constants_1.MESSAGES.HELLO);
     head.sendMessage(constants_1.MESSAGES.GETPEERS);
 });

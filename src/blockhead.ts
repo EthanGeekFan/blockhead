@@ -6,7 +6,7 @@ import { hash, logger, Peer, readPeers, validatePeer, writePeers } from "./utils
 import _ = require("lodash");
 import semver = require("semver");
 import { Transaction } from "./models";
-import { getClients } from "./connections";
+import { addClient, getClients, removeClient } from "./connections";
 import mongoose = require("mongoose");
 
 const TIMEOUT_MS = 1000;
@@ -24,6 +24,7 @@ class Blockhead {
         this.handshake = false;
         this.socket = socket;
         this.timeout = null;
+        addClient(this);
 
         // Now that a TCP connection has been established, the server can send data to
         // the client by writing to its socket.
@@ -184,12 +185,13 @@ class Blockhead {
 
         // When the client requests to end the TCP connection with the server, the server
         // ends the connection.
-        socket.on('end', function() {
+        socket.on('end', () => {
             logger.info('Closing connection with the client');
+            removeClient(this);
         });
 
         // Don't forget to catch error, for your own sake.
-        socket.on('error', function(err) {
+        socket.on('error', (err) => {
             logger.error(err);
         });
     }

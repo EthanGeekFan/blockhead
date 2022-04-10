@@ -16,7 +16,6 @@ async function start() {
     peers.map(async (peer: Peer) => {
         if (validatePeer(peer)) {
             const client = createClient(peer);
-            addClient(client);
         }
     });
     

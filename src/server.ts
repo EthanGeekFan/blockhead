@@ -1,14 +1,10 @@
 // Include Nodejs' net module.
 import Net = require('net');
-import canonicalize from 'canonicalize';
 import { MESSAGES } from './constants';
 import { Blockhead } from './blockhead';
 
 // The port on which the server is listening.
 const port = 18018;
-
-// Message delimiter.
-const delimiter = '\n';
 
 // Use net.createServer() in your code. This is just for illustration purpose.
 // Create a new TCP server.
@@ -18,8 +14,6 @@ const server: Net.Server = new Net.Server();
 server.listen(port, function() {
     console.log(`Server listening for connection requests on socket localhost:${port}.`);
 });
-
-console.log("init server");
 
 
 // When a client requests a connection with the server, the server creates a new

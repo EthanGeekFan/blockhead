@@ -182,11 +182,12 @@ class Blockhead {
         });
         // When the client requests to end the TCP connection with the server, the server
         // ends the connection.
-        socket.on('end', function () {
+        socket.on('end', () => {
             utils_1.logger.info('Closing connection with the client');
+            (0, connections_1.removeClient)(this);
         });
         // Don't forget to catch error, for your own sake.
-        socket.on('error', function (err) {
+        socket.on('error', (err) => {
             utils_1.logger.error(err);
         });
     }
