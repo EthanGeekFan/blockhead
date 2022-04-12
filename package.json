@@ -30,7 +30,10 @@
   },
   "homepage": "https://github.com/EthanGeekFan/blockhead#readme",
   "dependencies": {
+    "@noble/ed25519": "^1.6.0",
     "@types/mongoose": "^5.11.97",
+    "ajv": "^8.11.0",
+    "ajv-formats": "^2.1.1",
     "canonicalize": "^1.0.8",
     "crypto": "^1.0.1",
     "lodash": "^4.17.21",

@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -11,6 +20,7 @@ const _ = require("lodash");
 const semver = require("semver");
 const models_1 = require("./models");
 const connections_1 = require("./connections");
+const transaction_1 = require("./transaction");
 // TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 const TIMEOUT_MS = 1000;
 const delimiter = '\n';
@@ -133,13 +143,26 @@ class Blockhead {
                                     return;
                                 }
                                 const obj = message.object;
-                                console.log(obj);
                                 const objectId = (0, utils_1.hash)((0, canonicalize_1.default)(obj).toString());
                                 if (obj.type === "transaction") {
+                                    if (!(0, utils_1.transactionPropValidator)(obj)) {
+                                        utils_1.logger.error(utils_1.transactionPropValidator.errors);
+                                        this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
+                                        return;
+                                    }
                                     utils_1.logger.info(`Received transaction id: ${objectId}.`);
-                                    models_1.Transaction.findOne({ objectId: objectId }).exec().then((transaction) => {
-                                        utils_1.logger.verbose("Transaction found: " + transaction);
+                                    models_1.Transaction.findOne({ objectId: objectId }).exec().then((transaction) => __awaiter(this, void 0, void 0, function* () {
                                         if (!transaction) {
+                                            try {
+                                                yield (0, transaction_1.transactionValidator)(obj);
+                                                // console.log(obj);
+                                            }
+                                            catch (e) {
+                                                utils_1.logger.error(`Transaction validation failed: ${e.message}.`);
+                                                console.log(e);
+                                                this.sendMessage(constants_1.MESSAGES.ERROR(e.message));
+                                                return;
+                                            }
                                             const newTransaction = new models_1.Transaction({
                                                 objectId: objectId,
                                                 type: obj.type,
@@ -152,10 +175,13 @@ class Blockhead {
                                             // Broadcast to all peers
                                             (0, connections_1.getClients)().map((client) => {
                                                 client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));
-                                                utils_1.logger.info(`Sent IHAVEOBJECT message to client: ${client.socket.remoteAddress}.`);
+                                                utils_1.logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
                                         }
-                                    });
+                                        else {
+                                            utils_1.logger.verbose("Transaction found: " + (0, canonicalize_1.default)(transaction));
+                                        }
+                                    }));
                                 }
                                 else if (obj.type === "block") {
                                     // TODO: Block search

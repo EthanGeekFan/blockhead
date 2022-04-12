@@ -2,12 +2,12 @@ import { ERRORS, MESSAGES } from "./constants";
 import Net = require("net");
 import canonicalize from "canonicalize";
 import fs = require("fs");
-import { hash, logger, Peer, readPeers, validatePeer, writePeers } from "./utils";
+import { hash, logger, Peer, readPeers, transactionPropValidator, validatePeer, writePeers } from "./utils";
 import _ = require("lodash");
 import semver = require("semver");
 import { Transaction } from "./models";
 import { addClient, getClients, removeClient } from "./connections";
-import mongoose = require("mongoose");
+import { transactionValidator } from "./transaction";
 
 // TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 
@@ -138,13 +138,25 @@ class Blockhead {
                                     return;
                                 }
                                 const obj = message.object;
-                                console.log(obj);
                                 const objectId = hash(canonicalize(obj)!.toString());
                                 if (obj.type === "transaction") {
+                                    if (!transactionPropValidator(obj)) {
+                                        logger.error(transactionPropValidator.errors);
+                                        this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                        return;
+                                    }
                                     logger.info(`Received transaction id: ${objectId}.`);
-                                    Transaction.findOne({ objectId: objectId }).exec().then((transaction) => {
-                                        logger.verbose("Transaction found: " + transaction);
+                                    Transaction.findOne({ objectId: objectId }).exec().then(async (transaction) => {
                                         if (!transaction) {
+                                            try {
+                                                await transactionValidator(obj);
+                                                // console.log(obj);
+                                            } catch (e: any) {
+                                                logger.error(`Transaction validation failed: ${e.message}.`);
+                                                console.log(e);
+                                                this.sendMessage(MESSAGES.ERROR(e.message));
+                                                return;
+                                            }
                                             const newTransaction = new Transaction({
                                                 objectId: objectId,
                                                 type: obj.type,
@@ -159,6 +171,8 @@ class Blockhead {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
                                                 logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
+                                        } else {
+                                            logger.verbose("Transaction found: " + canonicalize(transaction));
                                         }
                                     });
                                 } else if (obj.type === "block") {
