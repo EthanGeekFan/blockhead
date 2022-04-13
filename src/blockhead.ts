@@ -1,16 +1,12 @@
 import { ERRORS, MESSAGES } from "./constants";
 import Net = require("net");
 import canonicalize from "canonicalize";
-import fs = require("fs");
 import { hash, logger, Peer, readPeers, transactionPropValidator, validatePeer, writePeers } from "./utils";
 import _ = require("lodash");
 import semver = require("semver");
 import { Transaction } from "./models";
 import { addClient, getClients, removeClient } from "./connections";
 import { transactionValidator } from "./transaction";
-import mongoose from "mongoose";
-
-// TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 
 const TIMEOUT_MS = 1000;
 
