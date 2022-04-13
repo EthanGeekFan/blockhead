@@ -8,6 +8,7 @@ import semver = require("semver");
 import { Transaction } from "./models";
 import { addClient, getClients, removeClient } from "./connections";
 import { transactionValidator } from "./transaction";
+import mongoose from "mongoose";
 
 // TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 
@@ -102,18 +103,30 @@ class Blockhead {
                                     return;
                                 }
                                 const objectId = message.objectid;
-                                Transaction
-                                    .findOne({ objectId: objectId })
-                                    .select({ _id: 0, objectId: 0 })
-                                    .exec()
-                                    .then((transaction) => {
-                                        if (transaction) {
-                                            logger.info(`Transaction found: ${canonicalize(transaction)}.`);
-                                            this.sendMessage(MESSAGES.OBJECT(transaction));
-                                        } else {
-                                            logger.info(`Transaction with objectId ${objectId} not found.`);
-                                        }
-                                    });
+                                mongoose.connection.db.collection("transactions").findOne({ objectId: objectId }, (err, transaction) => {
+                                    if (err) {
+                                        console.log(err);
+                                        return;
+                                    }
+                                    if (transaction) {
+                                        logger.info(`Transaction found: ${canonicalize(transaction)}.`);
+                                        this.sendMessage(MESSAGES.OBJECT(transaction));
+                                    } else {
+                                        logger.info(`Transaction with objectId ${objectId} not found.`);
+                                    }
+                                });
+                                // Transaction
+                                //     .findOne({ objectId: objectId })
+                                //     .select({ _id: 0, objectId: 0 })
+                                //     .exec()
+                                //     .then((transaction) => {
+                                //         if (transaction) {
+                                //             logger.info(`Transaction found: ${canonicalize(transaction)}.`);
+                                //             this.sendMessage(MESSAGES.OBJECT(transaction));
+                                //         } else {
+                                //             logger.info(`Transaction with objectId ${objectId} not found.`);
+                                //         }
+                                //     });
                                 // TODO: Block search
                                 break;
                             };
