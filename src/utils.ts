@@ -4,9 +4,9 @@ import fs = require("fs");
 import _ = require("lodash");
 import Ajv, { JSONSchemaType } from "ajv"
 const ajv = new Ajv();
-// import addFormats from "ajv-formats";
+import addFormats from "ajv-formats";
 
-// addFormats(ajv);
+addFormats(ajv);
 
 const logger = createLogger({
     level: "silly",
@@ -44,7 +44,7 @@ function writePeers(peers: Peer[]) {
 }
 
 function validatePeer(peer: Peer): boolean {
-    return peer.host != "" && peer.port != null;
+    return peerPropValidator(peer);
 }
 
 function hash(data: string): string {
@@ -68,13 +68,6 @@ interface TransactionInterface {
 }
 
 ajv.addFormat("hex", /^[0-9a-f]+$/);
-// ajv.addFormat("hex", {
-//     type: "string",
-//     validate: (data: string) => {
-//         return /^[0-9a-f]+$/.test(data);
-//     }
-// });
-
 
 const transactionObjectSchema: JSONSchemaType<TransactionInterface> = {
     type: "object",
@@ -194,6 +187,29 @@ const transactionPropValidator = ajv.compile(transactionObjectSchema);
 
 // TODO: Block validation
 
+
+const peerObjectSchema: JSONSchemaType<Peer> = {
+    type: "object",
+    properties: {
+        host: {
+            type: "string",
+            format: "hostname",
+        },
+        port: {
+            type: "integer",
+            minimum: 1,
+            maximum: 65535,
+        },
+    },
+    required: [
+        "host",
+        "port",
+    ],
+    additionalProperties: false,
+};
+
+const peerPropValidator = ajv.compile(peerObjectSchema);
+
 export {
     logger,
     readPeers,
@@ -203,4 +219,5 @@ export {
     hash,
     TransactionInterface,
     transactionPropValidator,
+    peerPropValidator,
 }

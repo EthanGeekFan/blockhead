@@ -103,30 +103,32 @@ class Blockhead {
                                     return;
                                 }
                                 const objectId = message.objectid;
-                                mongoose.connection.db.collection("transactions").findOne({ objectId: objectId }, (err, transaction) => {
-                                    if (err) {
-                                        console.log(err);
-                                        return;
-                                    }
-                                    if (transaction) {
-                                        logger.info(`Transaction found: ${canonicalize(transaction)}.`);
-                                        this.sendMessage(MESSAGES.OBJECT(transaction));
-                                    } else {
-                                        logger.info(`Transaction with objectId ${objectId} not found.`);
-                                    }
-                                });
-                                // Transaction
-                                //     .findOne({ objectId: objectId })
-                                //     .select({ _id: 0, objectId: 0 })
-                                //     .exec()
-                                //     .then((transaction) => {
-                                //         if (transaction) {
-                                //             logger.info(`Transaction found: ${canonicalize(transaction)}.`);
-                                //             this.sendMessage(MESSAGES.OBJECT(transaction));
-                                //         } else {
-                                //             logger.info(`Transaction with objectId ${objectId} not found.`);
-                                //         }
-                                //     });
+                                // mongoose.connection.db.collection("transactions").findOne({ objectId: objectId }, (err, transaction) => {
+                                //     if (err) {
+                                //         console.log(err);
+                                //         return;
+                                //     }
+                                //     if (transaction) {
+                                //         transaction.objectId = undefined;
+                                //         logger.info(`Transaction found: ${canonicalize(transaction)}.`);
+                                //         this.sendMessage(MESSAGES.OBJECT(transaction));
+                                //     } else {
+                                //         logger.info(`Transaction with objectId ${objectId} not found.`);
+                                //     }
+                                // });
+                                Transaction
+                                    .findOne({ objectId: objectId })
+                                    .select({ _id: 0, objectId: 0 })
+                                    .lean()
+                                    .exec()
+                                    .then((transaction) => {
+                                        if (transaction) {
+                                            logger.info(`Transaction found: ${canonicalize(transaction)}.`);
+                                            this.sendMessage(MESSAGES.OBJECT(transaction));
+                                        } else {
+                                            logger.info(`Transaction with objectId ${objectId} not found.`);
+                                        }
+                                    });
                                 // TODO: Block search
                                 break;
                             };
@@ -155,7 +157,7 @@ class Blockhead {
                                 if (obj.type === "transaction") {
                                     if (!transactionPropValidator(obj)) {
                                         logger.error(transactionPropValidator.errors);
-                                        this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                        this.sendMessage(MESSAGES.ERROR(`Invalid parameter at: ${transactionPropValidator.errors![0].instancePath}` || ERRORS.INVSTRUCT));
                                         return;
                                     }
                                     logger.info(`Received transaction id: ${objectId}.`);

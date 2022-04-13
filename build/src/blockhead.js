@@ -21,7 +21,6 @@ const semver = require("semver");
 const models_1 = require("./models");
 const connections_1 = require("./connections");
 const transaction_1 = require("./transaction");
-const mongoose_1 = __importDefault(require("mongoose"));
 // TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 const TIMEOUT_MS = 1000;
 const delimiter = '\n';
@@ -106,11 +105,25 @@ class Blockhead {
                                     return;
                                 }
                                 const objectId = message.objectid;
-                                mongoose_1.default.connection.db.collection("transactions").findOne({ objectId: objectId }, (err, transaction) => {
-                                    if (err) {
-                                        console.log(err);
-                                        return;
-                                    }
+                                // mongoose.connection.db.collection("transactions").findOne({ objectId: objectId }, (err, transaction) => {
+                                //     if (err) {
+                                //         console.log(err);
+                                //         return;
+                                //     }
+                                //     if (transaction) {
+                                //         transaction.objectId = undefined;
+                                //         logger.info(`Transaction found: ${canonicalize(transaction)}.`);
+                                //         this.sendMessage(MESSAGES.OBJECT(transaction));
+                                //     } else {
+                                //         logger.info(`Transaction with objectId ${objectId} not found.`);
+                                //     }
+                                // });
+                                models_1.Transaction
+                                    .findOne({ objectId: objectId })
+                                    .select({ _id: 0, objectId: 0 })
+                                    .lean()
+                                    .exec()
+                                    .then((transaction) => {
                                     if (transaction) {
                                         utils_1.logger.info(`Transaction found: ${(0, canonicalize_1.default)(transaction)}.`);
                                         this.sendMessage(constants_1.MESSAGES.OBJECT(transaction));
@@ -119,18 +132,6 @@ class Blockhead {
                                         utils_1.logger.info(`Transaction with objectId ${objectId} not found.`);
                                     }
                                 });
-                                // Transaction
-                                //     .findOne({ objectId: objectId })
-                                //     .select({ _id: 0, objectId: 0 })
-                                //     .exec()
-                                //     .then((transaction) => {
-                                //         if (transaction) {
-                                //             logger.info(`Transaction found: ${canonicalize(transaction)}.`);
-                                //             this.sendMessage(MESSAGES.OBJECT(transaction));
-                                //         } else {
-                                //             logger.info(`Transaction with objectId ${objectId} not found.`);
-                                //         }
-                                //     });
                                 // TODO: Block search
                                 break;
                             }
@@ -160,7 +161,7 @@ class Blockhead {
                                 if (obj.type === "transaction") {
                                     if (!(0, utils_1.transactionPropValidator)(obj)) {
                                         utils_1.logger.error(utils_1.transactionPropValidator.errors);
-                                        this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
+                                        this.sendMessage(constants_1.MESSAGES.ERROR(`Invalid parameter at: ${utils_1.transactionPropValidator.errors[0].instancePath}` || constants_1.ERRORS.INVSTRUCT));
                                         return;
                                     }
                                     utils_1.logger.info(`Received transaction id: ${objectId}.`);

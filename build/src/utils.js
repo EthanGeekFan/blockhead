@@ -3,14 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.transactionPropValidator = exports.hash = exports.validatePeer = exports.writePeers = exports.readPeers = exports.logger = void 0;
+exports.peerPropValidator = exports.transactionPropValidator = exports.hash = exports.validatePeer = exports.writePeers = exports.readPeers = exports.logger = void 0;
 const winston_1 = require("winston");
 const crypto_1 = require("crypto");
 const fs = require("fs");
 const ajv_1 = __importDefault(require("ajv"));
 const ajv = new ajv_1.default();
-// import addFormats from "ajv-formats";
-// addFormats(ajv);
+const ajv_formats_1 = __importDefault(require("ajv-formats"));
+(0, ajv_formats_1.default)(ajv);
 const logger = (0, winston_1.createLogger)({
     level: "silly",
     format: winston_1.format.combine(winston_1.format.timestamp({
@@ -40,7 +40,7 @@ function writePeers(peers) {
 }
 exports.writePeers = writePeers;
 function validatePeer(peer) {
-    return peer.host != "" && peer.port != null;
+    return peerPropValidator(peer);
 }
 exports.validatePeer = validatePeer;
 function hash(data) {
@@ -48,12 +48,6 @@ function hash(data) {
 }
 exports.hash = hash;
 ajv.addFormat("hex", /^[0-9a-f]+$/);
-// ajv.addFormat("hex", {
-//     type: "string",
-//     validate: (data: string) => {
-//         return /^[0-9a-f]+$/.test(data);
-//     }
-// });
 const transactionObjectSchema = {
     type: "object",
     oneOf: [
@@ -169,3 +163,25 @@ const transactionObjectSchema = {
 };
 const transactionPropValidator = ajv.compile(transactionObjectSchema);
 exports.transactionPropValidator = transactionPropValidator;
+// TODO: Block validation
+const peerObjectSchema = {
+    type: "object",
+    properties: {
+        host: {
+            type: "string",
+            format: "hostname",
+        },
+        port: {
+            type: "integer",
+            minimum: 1,
+            maximum: 65535,
+        },
+    },
+    required: [
+        "host",
+        "port",
+    ],
+    additionalProperties: false,
+};
+const peerPropValidator = ajv.compile(peerObjectSchema);
+exports.peerPropValidator = peerPropValidator;
