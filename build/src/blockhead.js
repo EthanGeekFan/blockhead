@@ -155,7 +155,7 @@ class Blockhead {
                                         if (!transaction) {
                                             try {
                                                 yield (0, transaction_1.transactionValidator)(obj);
-                                                // console.log(obj);
+                                                console.log(obj);
                                             }
                                             catch (e) {
                                                 utils_1.logger.error(`Transaction validation failed: ${e.message}.`);
@@ -163,13 +163,7 @@ class Blockhead {
                                                 this.sendMessage(constants_1.MESSAGES.ERROR(e.message));
                                                 return;
                                             }
-                                            const newTransaction = new models_1.Transaction({
-                                                objectId: objectId,
-                                                type: obj.type,
-                                                height: obj.height,
-                                                inputs: obj.inputs,
-                                                outputs: obj.outputs,
-                                            });
+                                            const newTransaction = new models_1.Transaction(Object.assign({ objectId: objectId }, obj));
                                             newTransaction.save();
                                             utils_1.logger.info(`Saved new transaction: ${JSON.stringify((0, canonicalize_1.default)(obj), null, 4)}.`);
                                             // Broadcast to all peers

@@ -55,5 +55,11 @@ const transactionSchema = new mongoose_1.default.Schema({
         required: true
     },
 }, { versionKey: false });
+transactionSchema.pre("save", function (next) {
+    if (this.isNew && this.inputs.length === 0) {
+        this.inputs = undefined;
+    }
+    next();
+});
 const Transaction = mongoose_1.default.model("Transaction", transactionSchema);
 exports.Transaction = Transaction;

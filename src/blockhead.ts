@@ -150,7 +150,7 @@ class Blockhead {
                                         if (!transaction) {
                                             try {
                                                 await transactionValidator(obj);
-                                                // console.log(obj);
+                                                console.log(obj);
                                             } catch (e: any) {
                                                 logger.error(`Transaction validation failed: ${e.message}.`);
                                                 console.log(e);
@@ -159,10 +159,7 @@ class Blockhead {
                                             }
                                             const newTransaction = new Transaction({
                                                 objectId: objectId,
-                                                type: obj.type,
-                                                height: obj.height,
-                                                inputs: obj.inputs,
-                                                outputs: obj.outputs,
+                                                ...obj,
                                             });
                                             newTransaction.save();
                                             logger.info(`Saved new transaction: ${JSON.stringify(canonicalize(obj), null, 4)}.`);
