@@ -21,7 +21,6 @@ const semver = require("semver");
 const models_1 = require("./models");
 const connections_1 = require("./connections");
 const transaction_1 = require("./transaction");
-// TODO: verify msg of any type has the proper structure, e.g. obj should have objid 
 const TIMEOUT_MS = 1000;
 const delimiter = '\n';
 class Blockhead {

@@ -25,7 +25,7 @@ async function transactionValidator(tx: TransactionInterface) {
             const pubkey = itx.outputs[input.outpoint.index].pubkey;
             const sig = input.sig;
             logger.verbose(`Checking signature for pubkey ${pubkey} and signature ${sig}`);
-            const valid = await ed.verify(ed.Signature.fromHex(sig), canonicalize(unsignedTx)!, ed.Point.fromHex(pubkey));
+            const valid = await ed.verify(ed.Signature.fromHex(sig), new TextEncoder().encode(canonicalize(unsignedTx)!), ed.Point.fromHex(pubkey));
             if (!valid) {
                 throw new Error(`Corrupted signature: ${sig}`);
             }

@@ -63,7 +63,7 @@ function transactionValidator(tx) {
                 const pubkey = itx.outputs[input.outpoint.index].pubkey;
                 const sig = input.sig;
                 utils_1.logger.verbose(`Checking signature for pubkey ${pubkey} and signature ${sig}`);
-                const valid = yield ed.verify(ed.Signature.fromHex(sig), (0, canonicalize_1.default)(unsignedTx), ed.Point.fromHex(pubkey));
+                const valid = yield ed.verify(ed.Signature.fromHex(sig), new TextEncoder().encode((0, canonicalize_1.default)(unsignedTx)), ed.Point.fromHex(pubkey));
                 if (!valid) {
                     throw new Error(`Corrupted signature: ${sig}`);
                 }
