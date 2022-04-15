@@ -17,7 +17,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const utils_1 = require("./utils");
 function initDatabase() {
     return __awaiter(this, void 0, void 0, function* () {
-        const dburi = "mongodb://localhost/blockhead";
+        const dburi = "mongodb://localhost:12345/blockhead";
         const db = mongoose_1.default.connection;
         // Add listeners
         db.on('open', () => { utils_1.logger.info("Connected to MongoDB with URL: " + dburi); });

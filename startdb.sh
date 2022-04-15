@@ -40,8 +40,8 @@ function start_db
     db_dir=$project_dir/db
 
     echo "Mounting $db_dir to /data/db in container as a volume..."
-    echo "> docker run --rm --name blockhead -d -p 27017:27017 -v $db_dir:/data/db mongo"
-    docker run --rm --name blockhead -d -p 27017:27017 -v $db_dir:/data/db mongo
+    echo "> docker run --rm --name blockhead -d -p 12345:27017 -v $db_dir:/data/db mongo"
+    docker run --rm --name blockhead -d -p 12345:27017 -v $db_dir:/data/db mongo
 
     echo
 

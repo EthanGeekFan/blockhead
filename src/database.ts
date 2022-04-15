@@ -3,7 +3,7 @@ import { logger } from "./utils";
 
 
 async function initDatabase() {
-    const dburi = "mongodb://localhost/blockhead";
+    const dburi = "mongodb://localhost:12345/blockhead";
     const db = mongoose.connection;
     
     // Add listeners

@@ -2,7 +2,7 @@ const Net = require("net");
 const { MESSAGES } = require('../build/src/constants');
 
 const test_config = {
-    host: "localhost",
+    host: "45.77.6.79",
     port: 18018
 }
 
