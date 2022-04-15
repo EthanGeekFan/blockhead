@@ -22,7 +22,7 @@ const models_1 = require("./models");
 const connections_1 = require("./connections");
 const transaction_1 = require("./transaction");
 const TIMEOUT_MS = 1000;
-const delimiter = '\n';
+const deliminater = '\n';
 class Blockhead {
     constructor(socket) {
         this.buffer = "";
@@ -39,8 +39,8 @@ class Blockhead {
         });
         // The server can also receive data from the client by reading from its socket.
         socket.on('data', (chunk) => {
-            utils_1.logger.verbose(`Data received from client: ${chunk.toString().trim()}.`);
-            const deliminatedChunk = chunk.toString().split(delimiter);
+            utils_1.logger.verbose(`Data received from client: ${chunk.toString()}.`);
+            const deliminatedChunk = chunk.toString().split(deliminater);
             while (deliminatedChunk.length > 1) {
                 if (this.timeout) {
                     clearTimeout(this.timeout);
@@ -57,7 +57,8 @@ class Blockhead {
                                 return;
                             }
                             this.handshake = true;
-                            return;
+                            this.buffer = "";
+                            continue;
                         }
                         else {
                             this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.NOHELLO));
@@ -168,11 +169,9 @@ class Blockhead {
                                         if (!transaction) {
                                             try {
                                                 yield (0, transaction_1.transactionValidator)(obj);
-                                                console.log(obj);
                                             }
                                             catch (e) {
                                                 utils_1.logger.error(`Transaction validation failed: ${e.message}.`);
-                                                console.log(e);
                                                 this.sendMessage(constants_1.MESSAGES.ERROR(e.message));
                                                 return;
                                             }

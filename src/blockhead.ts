@@ -10,7 +10,7 @@ import { transactionValidator } from "./transaction";
 
 const TIMEOUT_MS = 1000;
 
-const delimiter = '\n';
+const deliminater = '\n';
 
 class Blockhead {
     buffer: string;
@@ -35,8 +35,8 @@ class Blockhead {
 
         // The server can also receive data from the client by reading from its socket.
         socket.on('data', (chunk) => {
-            logger.verbose(`Data received from client: ${chunk.toString().trim()}.`);
-            const deliminatedChunk: string[] = chunk.toString().split(delimiter);
+            logger.verbose(`Data received from client: ${chunk.toString()}.`);
+            const deliminatedChunk: string[] = chunk.toString().split(deliminater);
             while (deliminatedChunk.length > 1) {
                 if (this.timeout) {
                     clearTimeout(this.timeout);
@@ -53,7 +53,8 @@ class Blockhead {
                                 return;
                             }
                             this.handshake = true;
-                            return;
+                            this.buffer = "";
+                            continue;
                         } else {
                             this.sendMessage(MESSAGES.ERROR(ERRORS.NOHELLO));
                             socket.end();
@@ -161,10 +162,8 @@ class Blockhead {
                                         if (!transaction) {
                                             try {
                                                 await transactionValidator(obj);
-                                                console.log(obj);
                                             } catch (e: any) {
                                                 logger.error(`Transaction validation failed: ${e.message}.`);
-                                                console.log(e);
                                                 this.sendMessage(MESSAGES.ERROR(e.message));
                                                 return;
                                             }
