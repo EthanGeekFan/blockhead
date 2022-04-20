@@ -1,12 +1,14 @@
 import { ERRORS, MESSAGES } from "./constants";
 import Net = require("net");
 import canonicalize from "canonicalize";
-import { hash, logger, Peer, readPeers, transactionPropValidator, validatePeer, writePeers } from "./utils";
+import { blockPropValidator, hash, logger, Peer, readPeers, transactionPropValidator, validatePeer, writePeers } from "./utils";
 import _ = require("lodash");
 import semver = require("semver");
-import { Transaction } from "./models";
+import { Block, Transaction } from "./models";
 import { addClient, getClients, removeClient } from "./connections";
 import { transactionValidator } from "./transaction";
+import { blockValidator } from "./block";
+import { reportTx, reportBlock} from "./object_dispatch";
 
 const TIMEOUT_MS = 1000;
 
@@ -68,7 +70,7 @@ class Blockhead {
                             {
                                 if (!semver.satisfies(message.version, "0.8.x")) {
                                     this.sendMessage(MESSAGES.ERROR(ERRORS.INVVERSION));
-                                    return;
+                                    break;
                                 }
                                 break;
                             }
@@ -97,22 +99,9 @@ class Blockhead {
                             {
                                 if (!message.objectid) {
                                     this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
-                                    return;
+                                    break;
                                 }
                                 const objectId = message.objectid;
-                                // mongoose.connection.db.collection("transactions").findOne({ objectId: objectId }, (err, transaction) => {
-                                //     if (err) {
-                                //         console.log(err);
-                                //         return;
-                                //     }
-                                //     if (transaction) {
-                                //         transaction.objectId = undefined;
-                                //         logger.info(`Transaction found: ${canonicalize(transaction)}.`);
-                                //         this.sendMessage(MESSAGES.OBJECT(transaction));
-                                //     } else {
-                                //         logger.info(`Transaction with objectId ${objectId} not found.`);
-                                //     }
-                                // });
                                 Transaction
                                     .findOne({ objectId: objectId })
                                     .select({ _id: 0, objectId: 0 })
@@ -126,28 +115,44 @@ class Blockhead {
                                             logger.info(`Transaction with objectId ${objectId} not found.`);
                                         }
                                     });
-                                // TODO: Block search
+                                Block
+                                    .findOne({ objectId: objectId })
+                                    .select({ _id: 0, objectId: 0 })
+                                    .lean()
+                                    .exec()
+                                    .then((block) => {
+                                        if (block) {
+                                            logger.info(`Block found: ${canonicalize(block)}.`);
+                                            this.sendMessage(MESSAGES.OBJECT(block));
+                                        } else {
+                                            logger.info(`Block with objectId ${objectId} not found.`);
+                                        }
+                                    });
                                 break;
                             };
                         case MESSAGES.IHAVEOBJECT().type:
                             {
                                 if (!message.objectid) {
                                     this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
-                                    return;
+                                    break;
                                 }
                                 Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
                                     if (!transaction) {
                                         this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
                                     }
                                 });
-                                // TODO: Block search
+                                Block.findOne({ objectId: message.objectid }).exec().then((block) => {
+                                    if (!block) {
+                                        this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
+                                    }
+                                });
                                 break;
                             }
                         case MESSAGES.OBJECT().type:
                             {
                                 if (!message.object) {
                                     this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
-                                    return;
+                                    break;
                                 }
                                 const obj = message.object;
                                 const objectId = hash(canonicalize(obj)!.toString());
@@ -155,9 +160,13 @@ class Blockhead {
                                     if (!transactionPropValidator(obj)) {
                                         logger.error(transactionPropValidator.errors);
                                         this.sendMessage(MESSAGES.ERROR(`Invalid parameter at: ${transactionPropValidator.errors![0].instancePath}` || ERRORS.INVSTRUCT));
-                                        return;
+                                        break;
                                     }
                                     logger.info(`Received transaction id: ${objectId}.`);
+                                    if (reportTx(objectId, obj)) {
+                                        logger.info(`Transaction captured by dispatcher: id=${objectId}.`);
+                                        break;
+                                    }
                                     Transaction.findOne({ objectId: objectId }).exec().then(async (transaction) => {
                                         if (!transaction) {
                                             try {
@@ -183,8 +192,40 @@ class Blockhead {
                                         }
                                     });
                                 } else if (obj.type === "block") {
-                                    // TODO: Block search
+                                    if (!blockPropValidator(obj)) {
+                                        logger.error(blockPropValidator.errors);
+                                        this.sendMessage(MESSAGES.ERROR(`Invalid parameter at: ${blockPropValidator.errors![0].instancePath}` || ERRORS.INVSTRUCT));
+                                        break;
+                                    }
                                     logger.info(`Received block id: ${objectId}.`);
+                                    if (reportBlock(objectId, obj)) {
+                                        logger.info(`Block captured by dispatcher: id=${objectId}.`);
+                                        break;
+                                    }
+                                    Block.findOne({ objectId: objectId }).exec().then(async (block) => {
+                                        if (!block) {
+                                            try {
+                                                await blockValidator(obj, this);
+                                            } catch (e: any) {
+                                                logger.error(`Block validation failed: ${e.message}.`);
+                                                this.sendMessage(MESSAGES.ERROR(e.message));
+                                                return;
+                                            }
+                                            const newBlock = new Block({
+                                                objectId: objectId,
+                                                ...obj,
+                                            });
+                                            newBlock.save();
+                                            logger.info(`Saved new block: ${JSON.stringify(canonicalize(obj), null, 4)}.`);
+                                            // Broadcast to all peers
+                                            getClients().map((client) => {
+                                                client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
+                                                logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
+                                            });
+                                        } else {
+                                            logger.verbose("Block found: " + canonicalize(block));
+                                        }
+                                    });
                                 }
                                 break;
                             }

@@ -63,6 +63,94 @@ transactionSchema.pre("save", function (next) {
 
 const Transaction = mongoose.model("Transaction", transactionSchema);
 
+const blockSchema = new mongoose.Schema({
+    objectId: {
+        type: String,
+        required: true,
+        index: true,
+        unique: true,
+    },
+    type: {
+        type: String,
+        required: true
+    },
+    txids: {
+        type: [String],
+        required: true
+    },
+    nonce: {
+        type: String,
+        required: true
+    },
+    previd: {
+        type: String,
+    },
+    created: {
+        type: Number,
+        required: true
+    },
+    T: {
+        type: String,
+        required: true
+    },
+    miner: {
+        type: String,
+    },
+    note: {
+        type: String,
+    }
+}, { versionKey: false });
+
+blockSchema.pre("save", function (next) {
+    if (this.isNew) {
+        if (this.note === "") {
+            this.note = undefined;
+        }
+        if (this.miner === "") {
+            this.miner = undefined;
+        }
+        if (this.previd === "") {
+            this.previd = null;
+        }
+    }
+    next();
+});
+
+const Block = mongoose.model("Block", blockSchema);
+
+const utxoSchema = new mongoose.Schema({
+    txid: {
+        type: String,
+        required: true
+    },
+    index: {
+        type: Number,
+        required: true
+    },
+    value: {
+        type: Number,
+        required: true
+    },
+    pubkey: {
+        type: String,
+        required: true
+    }
+}, { _id: false, versionKey: false });
+
+const utxoSetSchema = new mongoose.Schema({
+    blockid: {
+        type: String,
+        required: true,
+        index: true,
+        unique: true,
+    },
+    utxos: [utxoSchema],
+}, { versionKey: false });
+
+const UTXOSet = mongoose.model("UTXOSet", utxoSetSchema);
+
 export {
     Transaction,
-}
+    Block,
+    UTXOSet,
+};

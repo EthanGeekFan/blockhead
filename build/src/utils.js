@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.peerPropValidator = exports.transactionPropValidator = exports.hash = exports.validatePeer = exports.writePeers = exports.readPeers = exports.logger = void 0;
+exports.peerPropValidator = exports.blockPropValidator = exports.transactionPropValidator = exports.hash = exports.validatePeer = exports.writePeers = exports.readPeers = exports.logger = void 0;
 const winston_1 = require("winston");
 const crypto_1 = require("crypto");
 const fs = require("fs");
@@ -159,11 +159,74 @@ const transactionObjectSchema = {
         "type",
         "outputs",
     ],
-    // additionalProperties: false,
 };
 const transactionPropValidator = ajv.compile(transactionObjectSchema);
 exports.transactionPropValidator = transactionPropValidator;
-// TODO: Block validation
+;
+const blockObjectSchema = {
+    type: "object",
+    properties: {
+        type: {
+            type: "string",
+            const: "block",
+        },
+        txids: {
+            type: "array",
+            minItems: 0,
+            items: {
+                type: "string",
+                format: "hex",
+                minLength: 64,
+                maxLength: 64,
+            },
+        },
+        nonce: {
+            type: "string",
+            format: "hex",
+            minLength: 64,
+            maxLength: 64,
+        },
+        previd: {
+            type: "string",
+            format: "hex",
+            minLength: 64,
+            maxLength: 64,
+            nullable: true,
+        },
+        created: {
+            type: "integer",
+            minimum: 0,
+        },
+        T: {
+            type: "string",
+            const: "00000002af000000000000000000000000000000000000000000000000000000",
+            format: "hex",
+            minLength: 64,
+            maxLength: 64,
+        },
+        miner: {
+            type: "string",
+            nullable: true,
+            maxLength: 128,
+        },
+        note: {
+            type: "string",
+            nullable: true,
+            maxLength: 128,
+        },
+    },
+    required: [
+        "type",
+        "txids",
+        "nonce",
+        "previd",
+        "created",
+        "T",
+    ],
+    additionalProperties: false,
+};
+const blockPropValidator = ajv.compile(blockObjectSchema);
+exports.blockPropValidator = blockPropValidator;
 const peerObjectSchema = {
     type: "object",
     properties: {

@@ -180,12 +180,86 @@ const transactionObjectSchema: JSONSchemaType<TransactionInterface> = {
         "type",
         "outputs",
     ],
-    // additionalProperties: false,
 };
 
 const transactionPropValidator = ajv.compile(transactionObjectSchema);
 
 // TODO: Block validation
+interface BlockInterface {
+    type: string;
+    txids: string[];
+    nonce: string;
+    previd: string | null;
+    created: number;
+    T: string;
+    miner?: string;
+    note?: string;
+};
+
+const blockObjectSchema: JSONSchemaType<BlockInterface> = {
+    type: "object",
+    properties: {
+        type: {
+            type: "string",
+            const: "block",
+        },
+        txids: {
+            type: "array",
+            minItems: 0,
+            items: {
+                type: "string",
+                format: "hex",
+                minLength: 64,
+                maxLength: 64,
+            },
+        },
+        nonce: {
+            type: "string",
+            format: "hex",
+            minLength: 64,
+            maxLength: 64,
+        },
+        previd: {
+            type: "string",
+            format: "hex",
+            minLength: 64,
+            maxLength: 64,
+            nullable: true,
+        },
+        created: {
+            type: "integer",
+            minimum: 0,
+        },
+        T: {
+            type: "string",
+            const: "00000002af000000000000000000000000000000000000000000000000000000",
+            format: "hex",
+            minLength: 64,
+            maxLength: 64,
+        },
+        miner: {
+            type: "string",
+            nullable: true,
+            maxLength: 128,
+        },
+        note: {
+            type: "string",
+            nullable: true,
+            maxLength: 128,
+        },
+    },
+    required: [
+        "type",
+        "txids",
+        "nonce",
+        "previd",
+        "created",
+        "T",
+    ],
+    additionalProperties: false,
+};
+
+const blockPropValidator = ajv.compile(blockObjectSchema);
 
 
 const peerObjectSchema: JSONSchemaType<Peer> = {
@@ -210,6 +284,18 @@ const peerObjectSchema: JSONSchemaType<Peer> = {
 
 const peerPropValidator = ajv.compile(peerObjectSchema);
 
+interface UTXOInterface {
+    txid: string;
+    index: number;
+    value: number;
+    pubkey: string;
+}
+
+interface UTXOSetInterface {
+    utxos: UTXOInterface[];
+    blockid: string;
+}
+
 export {
     logger,
     readPeers,
@@ -219,5 +305,9 @@ export {
     hash,
     TransactionInterface,
     transactionPropValidator,
+    BlockInterface,
+    blockPropValidator,
     peerPropValidator,
+    UTXOInterface,
+    UTXOSetInterface,
 }
