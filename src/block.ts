@@ -46,7 +46,7 @@ async function blockValidator(block: BlockInterface, sender: Blockhead) {
     // wait for all tx to resolve
     const resolvedTxs = await Promise.all(resolveTxids);
     // Get UTXO at previous block
-    const prevUTXO = await UTXOSet.findOne({ objectId: block.previd }).exec();
+    const prevUTXO = await UTXOSet.findOne({ blockid: block.previd }).exec();
     if (!prevUTXO) {
         throw new Error("Previous UTXO not found");
     }

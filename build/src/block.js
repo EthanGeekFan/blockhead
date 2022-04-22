@@ -61,7 +61,7 @@ function blockValidator(block, sender) {
         // wait for all tx to resolve
         const resolvedTxs = yield Promise.all(resolveTxids);
         // Get UTXO at previous block
-        const prevUTXO = yield models_1.UTXOSet.findOne({ objectId: block.previd }).exec();
+        const prevUTXO = yield models_1.UTXOSet.findOne({ blockid: block.previd }).exec();
         if (!prevUTXO) {
             throw new Error("Previous UTXO not found");
         }

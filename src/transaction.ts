@@ -71,12 +71,7 @@ async function validateTxWithUTXOSet(tx: TransactionInterface, utxoSet: UTXOSetI
         let inputSum = 0;
         const inputValidator = async (input: { outpoint: any; sig: any }) => {
         // validate outpoints
-        const utxoSubSet = _.remove(
-            utxoSet.utxos,
-            (utxo) =>
-            utxo.txid === input.outpoint.txid &&
-            utxo.index === input.outpoint.index
-        ); // find & remove to avoid double spend in single tx
+        const utxoSubSet = _.remove(utxoSet.utxos, (utxo) => utxo.txid === input.outpoint.txid && utxo.index === input.outpoint.index); // find & remove to avoid double spend in single tx
         if (utxoSubSet.length === 0) {
             throw new Error("Did not find UTXO: " + JSON.stringify(input.outpoint));
         }
