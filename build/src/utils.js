@@ -199,7 +199,8 @@ const blockObjectSchema = {
         },
         T: {
             type: "string",
-            const: "00000002af000000000000000000000000000000000000000000000000000000",
+            // const: "00000002af000000000000000000000000000000000000000000000000000000",
+            // const: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
             format: "hex",
             minLength: 64,
             maxLength: 64,

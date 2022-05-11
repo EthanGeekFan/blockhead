@@ -70,6 +70,10 @@ const blockSchema = new mongoose.Schema({
         index: true,
         unique: true,
     },
+    height: {
+        type: Number,
+        required: true
+    },
     type: {
         type: String,
         required: true
@@ -149,8 +153,24 @@ const utxoSetSchema = new mongoose.Schema({
 
 const UTXOSet = mongoose.model("UTXOSet", utxoSetSchema);
 
+const chainTipSchema = new mongoose.Schema({
+    height: {
+        type: Number,
+        required: true
+    },
+    blockid: {
+        type: String,
+        required: true,
+        index: true,
+        unique: true,
+    }
+}, { versionKey: false });
+
+const ChainTip = mongoose.model("ChainTip", chainTipSchema);
+
 export {
     Transaction,
     Block,
     UTXOSet,
+    ChainTip,
 };

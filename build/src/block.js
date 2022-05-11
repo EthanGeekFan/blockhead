@@ -21,7 +21,7 @@ const transaction_1 = require("./transaction");
 const COINBASE_REWARD = 50e12; // 50 bu = 50 * 10^12 pica bu
 function resolveTx(txid, sender) {
     return __awaiter(this, void 0, void 0, function* () {
-        const tx = yield models_1.Transaction.findOne({ objectId: txid }).select({ _id: 0, objectId: 0 }).lean().exec();
+        const tx = yield models_1.Transaction.findOne({ objectId: txid }).select({ _id: 0, objectId: 0, height: 0 }).lean().exec();
         if (!tx) {
             return (0, object_dispatch_1.requestTx)(txid, sender);
         }
@@ -35,18 +35,27 @@ function blockValidator(block, sender) {
         if (blockHash >= block.T) {
             throw new Error(`Invalid proof of work: ${blockHash} >= ${block.T}`);
         }
+        if (block.created * 1000 >= Date.now()) {
+            throw new Error(`Invalid block timestamp - should be created before now: ${block.created} >= ${(Date.now() / 1000) | 0}`);
+        }
         // ensure previous block exists
+        let prevBlock;
         if (block.previd) {
-            const savedPrevBlock = models_1.Block.findOne({ objectId: block.previd }).select({ _id: 0, objectId: 0 }).lean().exec();
-            let prevBlock;
+            const savedPrevBlock = yield models_1.Block.findOne({ objectId: block.previd }).select({ _id: 0, objectId: 0, height: 0 }).lean().exec();
             if (!savedPrevBlock) {
                 utils_1.logger.info(`Requesting previous block ${block.previd}`);
                 prevBlock = yield (0, object_dispatch_1.requestBlock)(block.previd, sender);
                 if (!prevBlock) {
                     throw new Error("Cannot find previous block: id=" + block.previd);
                 }
+                if (block.created <= prevBlock.created) {
+                    throw new Error(`Invalid block timestamp - should be created after previous block: ${block.created} <= ${prevBlock.created}`);
+                }
                 // ensure previous block is valid
                 yield blockValidator(prevBlock, sender);
+            }
+            else {
+                prevBlock = savedPrevBlock;
             }
         }
         else {
@@ -77,10 +86,12 @@ function blockValidator(block, sender) {
         for (const tx of resolvedTxs) {
             totalTxFee += yield (0, transaction_1.validateTxWithUTXOSet)(tx, prevUTXO);
         }
-        // check if total tx fee is correct
+        // get height of previous block
+        const blockHeight = (yield models_1.Block.findOne({ objectId: block.previd }).select({ height: 1 }).exec()).height + 1;
+        // check if total tx fee and height is correct
         if (coinbaseTx) {
-            if (coinbaseTx.height === undefined) {
-                throw new Error("Coinbase tx height is not set");
+            if (coinbaseTx.height === undefined || coinbaseTx.height !== blockHeight) {
+                throw new Error(`Coinbase tx height invalid: ${coinbaseTx.height} !== ${blockHeight}`);
             }
             if (coinbaseTx.outputs.length !== 1) {
                 throw new Error("Coinbase tx should have only one output");
@@ -109,6 +120,18 @@ function blockValidator(block, sender) {
             utxos: prevUTXO.utxos,
         });
         yield utxo.save();
+        // save block
+        const newBlock = new models_1.Block(Object.assign({ objectId: blockHash, height: blockHeight }, block));
+        newBlock.save();
+        // update chain tip if needed
+        const chainTip = yield models_1.ChainTip.findOne({}).exec();
+        if (!chainTip) {
+            throw new Error("Chain tip global state not found");
+        }
+        if (blockHeight > chainTip.height) {
+            yield models_1.ChainTip.updateOne({}, { height: blockHeight, blockid: blockHash }).exec();
+        }
+        utils_1.logger.info(`Saved new block: ${JSON.stringify((0, canonicalize_1.default)(block), null, 4)}.`);
         return;
     });
 }

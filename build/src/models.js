@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UTXOSet = exports.Block = exports.Transaction = void 0;
+exports.ChainTip = exports.UTXOSet = exports.Block = exports.Transaction = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const outpointSchema = new mongoose_1.default.Schema({
     txid: {
@@ -69,6 +69,10 @@ const blockSchema = new mongoose_1.default.Schema({
         required: true,
         index: true,
         unique: true,
+    },
+    height: {
+        type: Number,
+        required: true
     },
     type: {
         type: String,
@@ -145,3 +149,17 @@ const utxoSetSchema = new mongoose_1.default.Schema({
 }, { versionKey: false });
 const UTXOSet = mongoose_1.default.model("UTXOSet", utxoSetSchema);
 exports.UTXOSet = UTXOSet;
+const chainTipSchema = new mongoose_1.default.Schema({
+    height: {
+        type: Number,
+        required: true
+    },
+    blockid: {
+        type: String,
+        required: true,
+        index: true,
+        unique: true,
+    }
+}, { versionKey: false });
+const ChainTip = mongoose_1.default.model("ChainTip", chainTipSchema);
+exports.ChainTip = ChainTip;

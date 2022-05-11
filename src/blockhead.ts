@@ -4,7 +4,7 @@ import canonicalize from "canonicalize";
 import { blockPropValidator, hash, logger, Peer, readPeers, transactionPropValidator, validatePeer, writePeers } from "./utils";
 import _ = require("lodash");
 import semver = require("semver");
-import { Block, Transaction } from "./models";
+import { Block, ChainTip, Transaction } from "./models";
 import { addClient, getClients, removeClient } from "./connections";
 import { transactionValidator } from "./transaction";
 import { blockValidator } from "./block";
@@ -32,6 +32,7 @@ class Blockhead {
         this.socket.on("connect", () => {
             this.sendMessage(MESSAGES.HELLO);
             this.sendMessage(MESSAGES.GETPEERS);
+            this.sendMessage(MESSAGES.GETCHAINTIP);
             logger.verbose(`Sent HELLO and GETPEERS message to the server.`);
         });
 
@@ -104,7 +105,7 @@ class Blockhead {
                                 const objectId = message.objectid;
                                 Transaction
                                     .findOne({ objectId: objectId })
-                                    .select({ _id: 0, objectId: 0 })
+                                    .select({ _id: 0, objectId: 0, height: 0 })
                                     .lean()
                                     .exec()
                                     .then((transaction) => {
@@ -117,7 +118,7 @@ class Blockhead {
                                     });
                                 Block
                                     .findOne({ objectId: objectId })
-                                    .select({ _id: 0, objectId: 0 })
+                                    .select({ _id: 0, objectId: 0, height: 0 })
                                     .lean()
                                     .exec()
                                     .then((block) => {
@@ -211,12 +212,6 @@ class Blockhead {
                                                 this.sendMessage(MESSAGES.ERROR(e.message));
                                                 return;
                                             }
-                                            const newBlock = new Block({
-                                                objectId: objectId,
-                                                ...obj,
-                                            });
-                                            newBlock.save();
-                                            logger.info(`Saved new block: ${JSON.stringify(canonicalize(obj), null, 4)}.`);
                                             // Broadcast to all peers
                                             getClients().map((client) => {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
@@ -226,6 +221,8 @@ class Blockhead {
                                             logger.verbose("Block found: " + canonicalize(block));
                                         }
                                     });
+                                } else {
+                                    this.sendMessage(MESSAGES.ERROR(ERRORS.INVOBJECT));
                                 }
                                 break;
                             }
@@ -234,8 +231,23 @@ class Blockhead {
                         case MESSAGES.MEMPOOL().type:
                             break;
                         case MESSAGES.GETCHAINTIP.type:
+                            ChainTip.findOne({}).exec().then((tip) => {
+                                if (tip) {
+                                    this.sendMessage(MESSAGES.CHAINTIP(tip.blockid));
+                                } else {
+                                    this.sendMessage(MESSAGES.ERROR(ERRORS.EINTERNAL));
+                                }
+                            });
                             break;
                         case MESSAGES.CHAINTIP().type:
+                            if (!message.blockid) {
+                                this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                            }
+                            Block.findOne({ objectId: message.blockid }).exec().then((block) => {
+                                if (!block) {
+                                    this.sendMessage(MESSAGES.GETOBJECT(message.blockid));
+                                }
+                            });
                             break;
                         default:
                             this.sendMessage(MESSAGES.ERROR(ERRORS.INVTYPE));

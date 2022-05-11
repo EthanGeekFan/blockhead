@@ -9,7 +9,6 @@ const ERRORS = {
     INVJSON: "Invalid json message.",
     TIMEOUT: "Message not received in a reasonable time.",
     INVSTRUCT: "Invalid structure.",
-    INVOBJECT: "Invalid object.",
     EINTERNAL: "Internal error.",
 };
 exports.ERRORS = ERRORS;

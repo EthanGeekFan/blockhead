@@ -70,28 +70,28 @@ async function validateTxWithUTXOSet(tx: TransactionInterface, utxoSet: UTXOSetI
         );
         let inputSum = 0;
         const inputValidator = async (input: { outpoint: any; sig: any }) => {
-        // validate outpoints
-        const utxoSubSet = _.remove(utxoSet.utxos, (utxo) => utxo.txid === input.outpoint.txid && utxo.index === input.outpoint.index); // find & remove to avoid double spend in single tx
-        if (utxoSubSet.length === 0) {
-            throw new Error("Did not find UTXO: " + JSON.stringify(input.outpoint));
-        }
-        const utxo = utxoSubSet[0];
-        // validate signatures
-        const pubkey = utxo.pubkey;
-        const sig = input.sig;
-        logger.verbose(
-            `Checking signature for pubkey ${pubkey} and signature ${sig}`
-        );
-        const valid = await ed.verify(
-            ed.Signature.fromHex(sig),
-            new TextEncoder().encode(canonicalize(unsignedTx)!),
-            ed.Point.fromHex(pubkey)
-        );
-        if (!valid) {
-            throw new Error(`Corrupted signature: ${sig}`);
-        }
-        // add input value to sum
-        inputSum += utxo.value;
+            // validate outpoints
+            const utxoSubSet = _.remove(utxoSet.utxos, (utxo) => utxo.txid === input.outpoint.txid && utxo.index === input.outpoint.index); // find & remove to avoid double spend in single tx
+            if (utxoSubSet.length === 0) {
+                throw new Error("Did not find UTXO: " + JSON.stringify(input.outpoint));
+            }
+            const utxo = utxoSubSet[0];
+            // validate signatures
+            const pubkey = utxo.pubkey;
+            const sig = input.sig;
+            logger.verbose(
+                `Checking signature for pubkey ${pubkey} and signature ${sig}`
+            );
+            const valid = await ed.verify(
+                ed.Signature.fromHex(sig),
+                new TextEncoder().encode(canonicalize(unsignedTx)!),
+                ed.Point.fromHex(pubkey)
+            );
+            if (!valid) {
+                throw new Error(`Corrupted signature: ${sig}`);
+            }
+            // add input value to sum
+            inputSum += utxo.value;
         };
         const inputValidators = tx.inputs.map((input) => inputValidator(input));
         await Promise.all(inputValidators);

@@ -37,6 +37,7 @@ class Blockhead {
         this.socket.on("connect", () => {
             this.sendMessage(constants_1.MESSAGES.HELLO);
             this.sendMessage(constants_1.MESSAGES.GETPEERS);
+            this.sendMessage(constants_1.MESSAGES.GETCHAINTIP);
             utils_1.logger.verbose(`Sent HELLO and GETPEERS message to the server.`);
         });
         // The server can also receive data from the client by reading from its socket.
@@ -109,7 +110,7 @@ class Blockhead {
                                 const objectId = message.objectid;
                                 models_1.Transaction
                                     .findOne({ objectId: objectId })
-                                    .select({ _id: 0, objectId: 0 })
+                                    .select({ _id: 0, objectId: 0, height: 0 })
                                     .lean()
                                     .exec()
                                     .then((transaction) => {
@@ -123,7 +124,7 @@ class Blockhead {
                                 });
                                 models_1.Block
                                     .findOne({ objectId: objectId })
-                                    .select({ _id: 0, objectId: 0 })
+                                    .select({ _id: 0, objectId: 0, height: 0 })
                                     .lean()
                                     .exec()
                                     .then((block) => {
@@ -220,9 +221,6 @@ class Blockhead {
                                                 this.sendMessage(constants_1.MESSAGES.ERROR(e.message));
                                                 return;
                                             }
-                                            const newBlock = new models_1.Block(Object.assign({ objectId: objectId }, obj));
-                                            newBlock.save();
-                                            utils_1.logger.info(`Saved new block: ${JSON.stringify((0, canonicalize_1.default)(obj), null, 4)}.`);
                                             // Broadcast to all peers
                                             (0, connections_1.getClients)().map((client) => {
                                                 client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));
@@ -234,6 +232,9 @@ class Blockhead {
                                         }
                                     }));
                                 }
+                                else {
+                                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVOBJECT));
+                                }
                                 break;
                             }
                         case constants_1.MESSAGES.GETMEMPOOL.type:
@@ -241,8 +242,24 @@ class Blockhead {
                         case constants_1.MESSAGES.MEMPOOL().type:
                             break;
                         case constants_1.MESSAGES.GETCHAINTIP.type:
+                            models_1.ChainTip.findOne({}).exec().then((tip) => {
+                                if (tip) {
+                                    this.sendMessage(constants_1.MESSAGES.CHAINTIP(tip.blockid));
+                                }
+                                else {
+                                    this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.EINTERNAL));
+                                }
+                            });
                             break;
                         case constants_1.MESSAGES.CHAINTIP().type:
+                            if (!message.blockid) {
+                                this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
+                            }
+                            models_1.Block.findOne({ objectId: message.blockid }).exec().then((block) => {
+                                if (!block) {
+                                    this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.blockid));
+                                }
+                            });
                             break;
                         default:
                             this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVTYPE));
