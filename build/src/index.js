@@ -19,6 +19,7 @@ const utils_1 = require("./utils");
 const lodash_1 = __importDefault(require("lodash"));
 const database_1 = require("./database");
 const models_1 = require("./models");
+const mempool_1 = require("./mempool");
 const genesis = {
     "T": "00000002af000000000000000000000000000000000000000000000000000000",
     "created": 1624219079,
@@ -31,7 +32,7 @@ const genesis = {
     "objectId": "00000000a420b7cefa2b7730243316921ed59ffe836e111ca3801f82a4f5360e",
     "height": 0,
 };
-function genesisInit() {
+function initGenesis() {
     return __awaiter(this, void 0, void 0, function* () {
         // check genesis block presence
         const genesisBlock = yield models_1.Block.findOne({ objectId: genesis.objectId }).exec();
@@ -60,7 +61,8 @@ function genesisInit() {
 function start() {
     return __awaiter(this, void 0, void 0, function* () {
         yield (0, database_1.initDatabase)();
-        yield genesisInit();
+        yield initGenesis();
+        (0, mempool_1.initMempool)();
         let peers = (0, utils_1.readPeers)();
         const trustedPeers = require('./trustedPeers.json');
         peers = lodash_1.default.shuffle(peers).slice(0, 10).concat(trustedPeers);

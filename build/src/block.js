@@ -18,6 +18,7 @@ const canonicalize_1 = __importDefault(require("canonicalize"));
 const models_1 = require("./models");
 const object_dispatch_1 = require("./object_dispatch");
 const transaction_1 = require("./transaction");
+const mempool_1 = require("./mempool");
 const COINBASE_REWARD = 50e12; // 50 bu = 50 * 10^12 pica bu
 function resolveTx(txid, sender) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -130,6 +131,8 @@ function blockValidator(block, sender) {
         }
         if (blockHeight > chainTip.height) {
             yield models_1.ChainTip.updateOne({}, { height: blockHeight, blockid: blockHash }).exec();
+            yield (0, mempool_1.switchChainTip)(blockHash);
+            utils_1.logger.info(`Updated chain tip: ${JSON.stringify({ height: blockHeight, blockid: blockHash })}`);
         }
         utils_1.logger.info(`Saved new block: ${JSON.stringify((0, canonicalize_1.default)(block), null, 4)}.`);
         return;

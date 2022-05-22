@@ -5,6 +5,7 @@ import { readPeers, Peer, validatePeer } from "./utils";
 import _ from 'lodash';
 import { initDatabase } from "./database";
 import { Block, ChainTip, UTXOSet } from "./models";
+import { initMempool } from "./mempool";
 
 const genesis = {
     "T": "00000002af000000000000000000000000000000000000000000000000000000",
@@ -19,7 +20,7 @@ const genesis = {
     "height": 0,
 };
 
-async function genesisInit() {
+async function initGenesis() {
     // check genesis block presence
     const genesisBlock = await Block.findOne({ objectId: genesis.objectId }).exec();
     if (!genesisBlock) {
@@ -46,7 +47,8 @@ async function genesisInit() {
 
 async function start() {
     await initDatabase();
-    await genesisInit();
+    await initGenesis();
+    initMempool();
     let peers = readPeers();
     const trustedPeers = require('./trustedPeers.json');
     

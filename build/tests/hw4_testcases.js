@@ -61,3 +61,5 @@ link();
 console.log("tb_f_2");
 serialize_block(tb_f_2);
 divider();
+const cb1 = { "height": 1, "outputs": [{ "pubkey": "e3b1f3cd0b79e9ec9c4adcb38ac147c14bfb4184941af70ab6debefcb752445f", "value": 50000000000000 }], "type": "transaction" };
+console.log(hash(canonicalize(cb1)));

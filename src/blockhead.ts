@@ -9,6 +9,7 @@ import { addClient, getClients, removeClient } from "./connections";
 import { transactionValidator } from "./transaction";
 import { blockValidator } from "./block";
 import { reportTx, reportBlock} from "./object_dispatch";
+import { getMempool } from "./mempool";
 
 const TIMEOUT_MS = 1000;
 
@@ -33,7 +34,8 @@ class Blockhead {
             this.sendMessage(MESSAGES.HELLO);
             this.sendMessage(MESSAGES.GETPEERS);
             this.sendMessage(MESSAGES.GETCHAINTIP);
-            logger.verbose(`Sent HELLO and GETPEERS message to the server.`);
+            this.sendMessage(MESSAGES.GETMEMPOOL);
+            logger.verbose(`Sent HELLO, GETPEERS, GETCHAINTIP message to the server.`);
         });
 
         // The server can also receive data from the client by reading from its socket.
@@ -177,12 +179,6 @@ class Blockhead {
                                                 this.sendMessage(MESSAGES.ERROR(e.message));
                                                 return;
                                             }
-                                            const newTransaction = new Transaction({
-                                                objectId: objectId,
-                                                ...obj,
-                                            });
-                                            newTransaction.save();
-                                            logger.info(`Saved new transaction: ${JSON.stringify(canonicalize(obj), null, 4)}.`);
                                             // Broadcast to all peers
                                             getClients().map((client) => {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
@@ -227,8 +223,16 @@ class Blockhead {
                                 break;
                             }
                         case MESSAGES.GETMEMPOOL.type:
+                            this.sendMessage(MESSAGES.MEMPOOL(getMempool()));
                             break;
                         case MESSAGES.MEMPOOL().type:
+                            if (!message.txids || !Array.isArray(message.txids)) {
+                                this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                break;
+                            }
+                            message.txids.forEach((txid: string) => {
+                                this.sendMessage(MESSAGES.GETOBJECT(txid));
+                            });
                             break;
                         case MESSAGES.GETCHAINTIP.type:
                             ChainTip.findOne({}).exec().then((tip) => {
@@ -242,6 +246,7 @@ class Blockhead {
                         case MESSAGES.CHAINTIP().type:
                             if (!message.blockid) {
                                 this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
+                                break;
                             }
                             Block.findOne({ objectId: message.blockid }).exec().then((block) => {
                                 if (!block) {

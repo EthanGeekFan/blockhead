@@ -48,6 +48,7 @@ function hash(data) {
 }
 exports.hash = hash;
 ajv.addFormat("hex", /^[0-9a-f]+$/);
+ajv.addFormat("ascii", /^[\x20-\x7E]*$/);
 const transactionObjectSchema = {
     type: "object",
     oneOf: [
@@ -199,19 +200,20 @@ const blockObjectSchema = {
         },
         T: {
             type: "string",
-            // const: "00000002af000000000000000000000000000000000000000000000000000000",
-            // const: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            const: "00000002af000000000000000000000000000000000000000000000000000000",
             format: "hex",
             minLength: 64,
             maxLength: 64,
         },
         miner: {
             type: "string",
+            format: "ascii",
             nullable: true,
             maxLength: 128,
         },
         note: {
             type: "string",
+            format: "ascii",
             nullable: true,
             maxLength: 128,
         },

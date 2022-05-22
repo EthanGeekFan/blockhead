@@ -68,6 +68,7 @@ interface TransactionInterface {
 }
 
 ajv.addFormat("hex", /^[0-9a-f]+$/);
+ajv.addFormat("ascii", /^[\x20-\x7E]*$/);
 
 const transactionObjectSchema: JSONSchemaType<TransactionInterface> = {
     type: "object",
@@ -239,11 +240,13 @@ const blockObjectSchema: JSONSchemaType<BlockInterface> = {
         },
         miner: {
             type: "string",
+            format: "ascii",
             nullable: true,
             maxLength: 128,
         },
         note: {
             type: "string",
+            format: "ascii",
             nullable: true,
             maxLength: 128,
         },

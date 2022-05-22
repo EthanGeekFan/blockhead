@@ -4,6 +4,7 @@ import { UTXOSet, Transaction, Block, ChainTip } from "./models";
 import { requestBlock, requestTx } from "./object_dispatch";
 import { Blockhead } from "./blockhead";
 import { validateTxWithUTXOSet } from "./transaction";
+import { switchChainTip } from "./mempool";
 
 const COINBASE_REWARD = 50e12; // 50 bu = 50 * 10^12 pica bu
 
@@ -123,6 +124,8 @@ async function blockValidator(block: BlockInterface, sender: Blockhead) {
     }
     if (blockHeight > chainTip.height) {
         await ChainTip.updateOne({}, { height: blockHeight, blockid: blockHash }).exec();
+        await switchChainTip(blockHash);
+        logger.info(`Updated chain tip: ${JSON.stringify({ height: blockHeight, blockid: blockHash })}`);
     }
     logger.info(`Saved new block: ${JSON.stringify(canonicalize(block), null, 4)}.`);
     return;

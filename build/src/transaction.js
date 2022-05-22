@@ -41,48 +41,16 @@ const utils_1 = require("./utils");
 const _ = require("lodash");
 const ed = __importStar(require("@noble/ed25519"));
 const canonicalize_1 = __importDefault(require("canonicalize"));
+const mempool_1 = require("./mempool");
 function transactionValidator(tx) {
     return __awaiter(this, void 0, void 0, function* () {
         // normal transaction
         if (tx.inputs) {
-            let unsignedTx = JSON.parse(JSON.stringify(tx));
-            unsignedTx = _.update(unsignedTx, "inputs", (input) => input.map((ipt) => _.update(ipt, "sig", (signature) => null)));
-            let inputSum = 0;
-            let inputValidators = [];
-            const inputValidator = (input) => __awaiter(this, void 0, void 0, function* () {
-                // validate outpoints
-                const itx = yield models_1.Transaction.findOne({
-                    objectId: input.outpoint.txid,
-                }).exec();
-                if (!itx) {
-                    throw new Error("Did not find previous transaction with id: " + input.outpoint.txid);
-                }
-                utils_1.logger.info(`Found previous transaction: ${JSON.stringify(itx)}`);
-                if (input.outpoint.index >= itx.outputs.length) {
-                    throw new Error(`Outpoint index out of bound: ${input.outpoint.index}/${itx.outputs.length - 1}`);
-                }
-                // validate signatures
-                const pubkey = itx.outputs[input.outpoint.index].pubkey;
-                const sig = input.sig;
-                utils_1.logger.verbose(`Checking signature for pubkey ${pubkey} and signature ${sig}`);
-                const valid = yield ed.verify(ed.Signature.fromHex(sig), new TextEncoder().encode((0, canonicalize_1.default)(unsignedTx)), ed.Point.fromHex(pubkey));
-                if (!valid) {
-                    throw new Error(`Corrupted signature: ${sig}`);
-                }
-                // add input value to sum
-                inputSum += itx.outputs[input.outpoint.index].value;
-            });
-            tx.inputs.forEach((input) => {
-                inputValidators.push(inputValidator(input));
-            });
-            yield Promise.all(inputValidators);
-            // validate sum
-            if (inputSum < tx.outputs.reduce((acc, output) => acc + output.value, 0)) {
-                throw new Error("Output value greater than input value");
-            }
+            yield validateTxWithUTXOSet(tx, (0, mempool_1.getMempoolState)());
+            (0, mempool_1.addRawTransactionToMempool)(tx);
         }
         else {
-            return;
+            throw new Error("No inputs found in transaction: " + JSON.stringify(tx));
         }
     });
 }
