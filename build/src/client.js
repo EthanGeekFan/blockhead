@@ -10,7 +10,7 @@ function createClient(options) {
     client.connect(options, function () {
         utils_1.logger.info(`TCP connection established with the server with options: ${JSON.stringify(options)}.`);
     });
-    const head = new blockhead_1.Blockhead(client);
+    const head = new blockhead_1.Blockhead(client, options);
     return head;
 }
 exports.createClient = createClient;

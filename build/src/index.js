@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.heads = void 0;
 const client_1 = require("./client");
 const canonicalize_1 = __importDefault(require("canonicalize"));
 const server_1 = require("./server");
@@ -20,6 +21,8 @@ const lodash_1 = __importDefault(require("lodash"));
 const database_1 = require("./database");
 const models_1 = require("./models");
 const mempool_1 = require("./mempool");
+var heads = [];
+exports.heads = heads;
 const genesis = {
     "T": "00000002af000000000000000000000000000000000000000000000000000000",
     "created": 1624219079,
@@ -68,7 +71,7 @@ function start() {
         peers = lodash_1.default.shuffle(peers).slice(0, 10).concat(trustedPeers);
         peers.map((peer) => __awaiter(this, void 0, void 0, function* () {
             if ((0, utils_1.validatePeer)(peer)) {
-                (0, client_1.createClient)(peer);
+                heads.push((0, client_1.createClient)(peer));
             }
         }));
         if (server_1.server) {

@@ -27,11 +27,13 @@ const mempool_1 = require("./mempool");
 const TIMEOUT_MS = 1000;
 const deliminater = '\n';
 class Blockhead {
-    constructor(socket) {
+    constructor(socket, options = {}) {
         this.buffer = "";
         this.handshake = false;
         this.socket = socket;
         this.timeout = null;
+        this.remoteAddress = options["host"] || "";
+        this.remotePort = options["port"] || 0;
         (0, connections_1.addClient)(this);
         // Now that a TCP connection has been established, the server can send data to
         // the client by writing to its socket.
@@ -306,6 +308,7 @@ class Blockhead {
     }
     sendMessage(message) {
         this.socket.write(((0, canonicalize_1.default)(message) || "{}") + "\n");
+        utils_1.logger.verbose(`Sent ${(0, canonicalize_1.default)(message)} to ${this.remoteAddress}:${this.remotePort}.`);
     }
 }
 exports.Blockhead = Blockhead;

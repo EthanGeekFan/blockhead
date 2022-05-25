@@ -55,7 +55,7 @@ function transactionValidator(tx) {
     });
 }
 exports.transactionValidator = transactionValidator;
-function validateTxWithUTXOSet(tx, utxoSet) {
+function validateTxWithUTXOSet(tx, utxoSet, save = true) {
     return __awaiter(this, void 0, void 0, function* () {
         // normal transaction
         if (tx.inputs && tx.inputs.length > 0) {
@@ -96,12 +96,14 @@ function validateTxWithUTXOSet(tx, utxoSet) {
                     pubkey: output.pubkey
                 };
             }));
-            // save transactions
-            const savedTx = yield models_1.Transaction.findOne({ objectId: txHash }).exec();
-            if (!savedTx) {
-                const newTx = new models_1.Transaction(Object.assign({ objectId: txHash }, tx));
-                newTx.save();
-                utils_1.logger.info(`Saved new block transaction: ${JSON.stringify(newTx)}`);
+            if (save) {
+                // save transactions
+                const savedTx = yield models_1.Transaction.findOne({ objectId: txHash }).exec();
+                if (!savedTx) {
+                    const newTx = new models_1.Transaction(Object.assign({ objectId: txHash }, tx));
+                    newTx.save();
+                    utils_1.logger.info(`Saved new block transaction: ${JSON.stringify(newTx)}`);
+                }
             }
             return txFee;
         }

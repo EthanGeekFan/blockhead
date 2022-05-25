@@ -6,6 +6,9 @@ import _ from 'lodash';
 import { initDatabase } from "./database";
 import { Block, ChainTip, UTXOSet } from "./models";
 import { initMempool } from "./mempool";
+import { Blockhead } from "./blockhead";
+
+var heads: Blockhead[] = [];
 
 const genesis = {
     "T": "00000002af000000000000000000000000000000000000000000000000000000",
@@ -56,7 +59,7 @@ async function start() {
     
     peers.map(async (peer: Peer) => {
         if (validatePeer(peer)) {
-            createClient(peer);
+            heads.push(createClient(peer));
         }
     });
     
@@ -68,3 +71,7 @@ async function start() {
 }
 
 start();
+
+export {
+    heads,
+}

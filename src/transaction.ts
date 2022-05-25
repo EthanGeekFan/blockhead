@@ -15,7 +15,7 @@ async function transactionValidator(tx: TransactionInterface) {
   }
 }
 
-async function validateTxWithUTXOSet(tx: TransactionInterface, utxoSet: UTXOSetInterface): Promise<number> {
+async function validateTxWithUTXOSet(tx: TransactionInterface, utxoSet: UTXOSetInterface, save: boolean = true): Promise<number> {
     // normal transaction
     if (tx.inputs && tx.inputs.length > 0) {
         let unsignedTx: TransactionInterface = JSON.parse(JSON.stringify(tx));
@@ -64,15 +64,17 @@ async function validateTxWithUTXOSet(tx: TransactionInterface, utxoSet: UTXOSetI
                 pubkey: output.pubkey
             }
         }));
-        // save transactions
-        const savedTx = await Transaction.findOne({ objectId: txHash }).exec();
-        if (!savedTx) {
-            const newTx = new Transaction({
-                objectId: txHash,
-                ...tx,
-            });
-            newTx.save();
-            logger.info(`Saved new block transaction: ${JSON.stringify(newTx)}`);
+        if (save) {
+            // save transactions
+            const savedTx = await Transaction.findOne({ objectId: txHash }).exec();
+            if (!savedTx) {
+                const newTx = new Transaction({
+                    objectId: txHash,
+                    ...tx,
+                });
+                newTx.save();
+                logger.info(`Saved new block transaction: ${JSON.stringify(newTx)}`);
+            }
         }
         return txFee;
     } else {

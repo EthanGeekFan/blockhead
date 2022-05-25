@@ -9,7 +9,7 @@ function createClient(options: Net.SocketConnectOpts): Blockhead {
         logger.info(`TCP connection established with the server with options: ${JSON.stringify(options)}.`);
     });
 
-    const head = new Blockhead(client);
+    const head = new Blockhead(client, options);
 
     return head;
 }

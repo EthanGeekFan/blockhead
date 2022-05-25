@@ -20,12 +20,16 @@ class Blockhead {
     handshake: boolean;
     socket: Net.Socket;
     timeout: any;
+    remoteAddress: string;
+    remotePort: number;
 
-    constructor(socket: Net.Socket) {
+    constructor(socket: Net.Socket, options: any = {}) {
         this.buffer = "";
         this.handshake = false;
         this.socket = socket;
         this.timeout = null;
+        this.remoteAddress = options["host"] || "";
+        this.remotePort = options["port"] || 0;
         addClient(this);
 
         // Now that a TCP connection has been established, the server can send data to
@@ -292,6 +296,7 @@ class Blockhead {
 
     sendMessage(message: any) {
         this.socket.write((canonicalize(message) || "{}") + "\n");
+        logger.verbose(`Sent ${canonicalize(message)} to ${this.remoteAddress}:${this.remotePort}.`);
     }
 }
 

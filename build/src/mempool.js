@@ -51,32 +51,32 @@ function switchChainTip(blockid) {
             throw new Error("Block not found");
         }
         while (newBlock.height > oldBlock.height) {
-            newBlock = yield models_1.Block.findOne({ previd: newBlock.previd }).exec();
+            newBlock = yield models_1.Block.findOne({ objectId: newBlock.previd }).exec();
             if (!newBlock) {
                 throw new Error("New block not found");
             }
         }
         while (oldBlock.objectId !== newBlock.objectId) {
-            oldBlock = yield models_1.Block.findOne({ previd: oldBlock.previd }).exec();
+            pool = _.concat(oldBlock.txids, pool);
+            oldBlock = yield models_1.Block.findOne({ objectId: oldBlock.previd }).exec();
             if (!oldBlock) {
                 throw new Error("Old block not found");
             }
-            newBlock = yield models_1.Block.findOne({ previd: newBlock.previd }).exec();
+            newBlock = yield models_1.Block.findOne({ objectId: newBlock.previd }).exec();
             if (!newBlock) {
                 throw new Error("New block not found");
             }
-            pool = _.concat(oldBlock.txids, pool);
         }
         const tipUTXOSet = yield models_1.UTXOSet.findOne({ blockid: blockid }).exec();
         if (!tipUTXOSet) {
             throw new Error("UTXO set not found");
         }
-        const dynamicUtxos = tipUTXOSet.utxos;
+        const dynamicUtxos = tipUTXOSet;
         const txPool = yield id2tx(pool);
         const garbage = [];
         for (let i = 0; i < txPool.length; i++) {
             try {
-                yield (0, transaction_1.validateTxWithUTXOSet)(txPool[i], dynamicUtxos);
+                yield (0, transaction_1.validateTxWithUTXOSet)(txPool[i], dynamicUtxos, false);
             }
             catch (error) {
                 garbage.push(pool[i]);
@@ -84,7 +84,7 @@ function switchChainTip(blockid) {
         }
         _.remove(pool, (item) => garbage.includes(item));
         mempoolState = {
-            utxos: dynamicUtxos,
+            utxos: dynamicUtxos.utxos,
             blockid: blockid,
         };
     });
@@ -95,7 +95,7 @@ function id2tx(ids) {
         if (typeof ids === "string") {
             ids = [ids];
         }
-        const txs = ids.map((id) => models_1.Transaction.findOne({ objectId: id }).exec());
+        const txs = ids.map((id) => models_1.Transaction.findOne({ objectId: id }).select({ _id: 0, objectId: 0, height: 0 }).exec());
         return yield Promise.all(txs);
     });
 }
