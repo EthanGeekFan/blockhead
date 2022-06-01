@@ -44,7 +44,7 @@ class Blockhead {
 
         // The server can also receive data from the client by reading from its socket.
         socket.on('data', (chunk) => {
-            logger.verbose(`Data received from client: ${chunk.toString()}.`);
+            logger.verbose(`Data received from ${this.remoteAddress}:${this.remotePort}: ${chunk.toString()}.`);
             const deliminatedChunk: string[] = chunk.toString().split(deliminater);
             while (deliminatedChunk.length > 1) {
                 if (this.timeout) {
@@ -53,7 +53,7 @@ class Blockhead {
                 this.buffer += deliminatedChunk.shift();
                 try {
                     const message = JSON.parse(this.buffer);
-                    logger.info(`Message received from client: ${canonicalize(message)}.`);
+                    logger.info(`Message received from ${this.remoteAddress}:${this.remotePort}: ${canonicalize(message)}.`);
                     if (!this.handshake) {
                         if (message.type === MESSAGES.HELLO.type) {
                             if (!semver.satisfies(message.version, "0.8.x")) {
@@ -186,7 +186,6 @@ class Blockhead {
                                             // Broadcast to all peers
                                             getClients().map((client) => {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
-                                                logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
                                         } else {
                                             logger.verbose("Transaction found: " + canonicalize(transaction));
@@ -215,7 +214,6 @@ class Blockhead {
                                             // Broadcast to all peers
                                             getClients().map((client) => {
                                                 client.sendMessage(MESSAGES.IHAVEOBJECT(objectId));
-                                                logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
                                         } else {
                                             logger.verbose("Block found: " + canonicalize(block));

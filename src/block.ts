@@ -105,18 +105,26 @@ async function blockValidator(block: BlockInterface, sender: Blockhead) {
     }
     // valid block
     // save UTXO
-    const utxo = new UTXOSet({
-        blockid: blockHash,
-        utxos: prevUTXO.utxos,
-    });
-    await utxo.save();
+    const savedUtxo = await UTXOSet.findOne({ blockid: blockHash }).exec();
+    if (!savedUtxo) {
+        const utxo = new UTXOSet({
+            blockid: blockHash,
+            utxos: prevUTXO.utxos,
+        });
+        await utxo.save();
+        logger.info(`Saved new UTXO: ${JSON.stringify(utxo)}`);
+    }
     // save block
-    const newBlock = new Block({
-        objectId: blockHash,
-        height: blockHeight,
-        ...block,
-    });
-    newBlock.save();
+    const savedNewBlock = await Block.findOne({ objectId: blockHash }).exec();
+    if (!savedNewBlock) {
+        const newBlock = new Block({
+            objectId: blockHash,
+            height: blockHeight,
+            ...block,
+        });
+        await newBlock.save();
+        logger.info(`Saved new block: ${JSON.stringify(newBlock)}`);
+    }
     // update chain tip if needed
     const chainTip = await ChainTip.findOne({}).exec();
     if (!chainTip) {

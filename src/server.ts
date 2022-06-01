@@ -20,7 +20,7 @@ server.listen(port, function() {
 // socket dedicated to that client.
 server.on('connection', function (socket) {
     console.log(`A client has connected with socket: ${socket.remoteAddress}:${socket.remotePort}.`);
-    const head = new Blockhead(socket);
+    const head = new Blockhead(socket, { host: socket.remoteAddress, port: socket.remotePort });
     head.sendMessage(MESSAGES.HELLO);
     head.sendMessage(MESSAGES.GETPEERS);
 });
