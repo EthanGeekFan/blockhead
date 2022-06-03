@@ -10,6 +10,8 @@ import { Blockhead } from "./blockhead";
 
 var heads: Blockhead[] = [];
 
+process.setMaxListeners(10000);
+
 const genesis = {
     "T": "00000002af000000000000000000000000000000000000000000000000000000",
     "created": 1624219079,
@@ -55,19 +57,13 @@ async function start() {
     let peers = readPeers();
     const trustedPeers = require('./trustedPeers.json');
     
-    peers = _.shuffle(peers).slice(0, 10).concat(trustedPeers);
+    peers = _.shuffle(peers).slice(0, 100).concat(trustedPeers);
     
     peers.map(async (peer: Peer) => {
         if (validatePeer(peer)) {
             heads.push(createClient(peer));
         }
     });
-    
-    if (server) {
-        console.log("yyds");
-    }
-    
-    console.log(canonicalize(peers));
 }
 
 start();

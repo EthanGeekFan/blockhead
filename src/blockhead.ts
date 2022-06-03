@@ -43,7 +43,7 @@ class Blockhead {
         });
 
         // The server can also receive data from the client by reading from its socket.
-        socket.on('data', (chunk) => {
+        socket.on('data', async (chunk) => {
             logger.verbose(`Data received from ${this.remoteAddress}:${this.remotePort}: ${chunk.toString()}.`);
             const deliminatedChunk: string[] = chunk.toString().split(deliminater);
             while (deliminatedChunk.length > 1) {
@@ -143,16 +143,11 @@ class Blockhead {
                                     this.sendMessage(MESSAGES.ERROR(ERRORS.INVSTRUCT));
                                     break;
                                 }
-                                Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
-                                    if (!transaction) {
-                                        this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
-                                    }
-                                });
-                                Block.findOne({ objectId: message.objectid }).exec().then((block) => {
-                                    if (!block) {
-                                        this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
-                                    }
-                                });
+                                const tx = await Transaction.findOne({ objectId: message.objectid }).exec();
+                                const block = await Block.findOne({ objectId: message.objectid }).exec();
+                                if (!block && !tx) {
+                                    this.sendMessage(MESSAGES.GETOBJECT(message.objectid));
+                                }
                                 break;
                             }
                         case MESSAGES.OBJECT().type:
@@ -289,6 +284,7 @@ class Blockhead {
         // Don't forget to catch error, for your own sake.
         socket.on('error', (err) => {
             logger.error(err);
+            removeClient(this);
         });
     }
 
