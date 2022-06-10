@@ -1,13 +1,15 @@
 import { Observable, Subject } from 'threads/observable';
 import { expose } from 'threads/worker';
-import { Block, ChainTip } from './models';
 import { utils, getPublicKey } from "@noble/ed25519";
-import { logger } from './utils';
+import { logger, hash } from './utils';
 import canonicalize from "canonicalize";
 
 var subject = new Subject();
 
-const target = "00000002af000000000000000000000000000000000000000000000000000000";
+var success = false;
+var first = true;
+
+const target = "0f000002af000000000000000000000000000000000000000000000000000000";
 const nonceChunkSize = 0x10000000000000000000000000000000000000000000000;
 const localMaxIterations = 100000;
 
@@ -46,18 +48,15 @@ async function mine() {
         while (!start) {
             await sleep(500);
         }
+        if (first) {
+            first = false;
+            await nextBlock();
+        }
         // generate a new block
-        const tip = await ChainTip.findOne({}).exec()
-        if (!tip) {
-            throw new Error('Chain tip not found');
+        if (success) {
+            await nextBlock();
+            success = false;
         }
-        currentState.prev_id = tip.blockid;
-        const tipBlock = await Block.findOne({ objectId: currentState.prev_id }).exec();
-        if (!tipBlock) {
-            throw new Error('Chain tip block not found');
-        }
-        currentState.height = tipBlock.height + 1;
-        await nextBlock();
         // mine the block
         let nonce = currentState.nonce;
         currentState.nonce += localMaxIterations;
@@ -67,9 +66,9 @@ async function mine() {
             const block_str = targetBlockPieces[0] + nonce2str(nonce) + targetBlockPieces[1];
             const block_hash = hash(block_str);
             if (block_hash < target) {
-                logger.info(`Found block with nonce ${nonce}`);
-                subject.next(block_str);
+                subject.next({block_str, coinbase: canonicalize(currentState.coinbase)!, coinbaseHash: currentState.coinbaseHash});
                 start = false;
+                success = true;
                 break;
             }
         }
@@ -83,6 +82,7 @@ async function nextBlock() {
     // Generate a new keypair
     let privateKey = utils.randomPrivateKey();
     let publicKey = await getPublicKey(privateKey);
+    
     currentState.publicKey = Buffer.from(publicKey).toString('hex');
     currentState.privateKey = Buffer.from(privateKey).toString('hex');
     // Generate a new coinbase transaction
@@ -96,7 +96,7 @@ async function nextBlock() {
         ],
         type: "transaction",
     }
-    const coinbaseHash = hash(canonicalize(coinbase));
+    const coinbaseHash = hash(canonicalize(coinbase)!.toString());
     currentState.coinbase = coinbase;
     currentState.coinbaseHash = coinbaseHash;
     // Generate a new block
@@ -111,9 +111,9 @@ async function nextBlock() {
         nonce: "null",
     }
     currentState.block = newBlock;
-    logger.info("Generated new block: " + JSON.stringify(currentState));
 }
 
+mine();
 
 const miner = {
     start: () => {
@@ -122,13 +122,24 @@ const miner = {
     stop: () => {
         start = false;
     },
-    update: async (pool: string[], tip_id: string, tip_height: number) => {
+    update: async (pool: string[], tip_id: string | undefined, tip_height: number | undefined) => {
+        start = false;
         mempool = pool;
         if (currentState.updating !== null) {
             await currentState.updating;
         }
-        currentState.prev_id = tip_id;
-        currentState.height = tip_height + 1;
+        if (tip_id !== undefined) {
+            currentState.prev_id = tip_id!;
+        }
+        if (tip_height !== undefined) {
+            currentState.height = tip_height! + 1;
+        }
+        success = true;
         start = true;
+    },
+    output() {
+        return Observable.from(subject);
     }
 }
+
+expose(miner);

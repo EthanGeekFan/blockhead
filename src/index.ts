@@ -1,14 +1,19 @@
 import { createClient } from "./client";
+import Net = require('net');
 import canonicalize from 'canonicalize';
 import { server } from "./server";
-import { readPeers, Peer, validatePeer } from "./utils";
+import { MESSAGES } from "./constants";
+import { readPeers, Peer, validatePeer, logger } from "./utils";
 import _ from 'lodash';
 import { initDatabase } from "./database";
-import { Block, ChainTip, UTXOSet } from "./models";
+import { Block, ChainTip, Transaction, UTXOSet } from "./models";
 import { initMempool } from "./mempool";
 import { Blockhead } from "./blockhead";
+import { spawn, Thread, Worker } from "threads";
+import { getClients } from "./connections";
 
 var heads: Blockhead[] = [];
+var miner: any;
 
 process.setMaxListeners(10000);
 
@@ -50,10 +55,40 @@ async function initGenesis() {
     }
 }
 
+interface MinerResult {
+    block_str: string;
+    coinbase: any;
+    coinbaseHash: string;
+}
+
+async function initMiner() {
+    miner = await spawn(new Worker("./miner.ts"));
+    miner.output().subscribe(async ({ block_str, coinbase, coinbaseHash }: MinerResult) => {
+        console.log(block_str);
+        console.log(coinbase);
+        const newCoinbase = new Transaction({
+            objectId: coinbaseHash,
+            ...coinbase,
+        });
+        await newCoinbase.save();
+        getClients().forEach(client => {
+            client.sendMessage(MESSAGES.OBJECT(JSON.parse(block_str)));
+            client.sendMessage(MESSAGES.OBJECT(JSON.parse(coinbase)));
+        });
+        // send to myself
+        const client = new Net.Socket();
+        client.connect({ host: "localhost", port: 18018 }, () => {
+            client.write(canonicalize(MESSAGES.OBJECT(JSON.parse(block_str)))! + "\n");
+        });
+        logger.info(`Found block: ${block_str}`);
+    });
+}
+
 async function start() {
     await initDatabase();
     await initGenesis();
     initMempool();
+    await initMiner();
     let peers = readPeers();
     const trustedPeers = require('./trustedPeers.json');
     
@@ -70,4 +105,5 @@ start();
 
 export {
     heads,
+    miner,
 }

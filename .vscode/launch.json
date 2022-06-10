@@ -20,9 +20,9 @@
             "name": "TypeScript Launch",
             "type": "node",
             "request": "launch",
-            "runtimeExecutable": "node",
+            "runtimeExecutable": "/Users/yifanyang/.nvm/versions/node/v18.2.0/bin/node",
             "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
-            "args": ["src/index.ts"],
+            "args": ["src/test.ts"],
             "cwd": "${workspaceRoot}",
             "internalConsoleOptions": "openOnSessionStart",
             "skipFiles": ["<node_internals>/**", "node_modules/**"]

@@ -4,6 +4,7 @@ import canonicalize from "canonicalize";
 import _ = require("lodash");
 import { Block, ChainTip, Transaction, UTXOSet } from "./models";
 import { validateTxWithUTXOSet } from "./transaction";
+import { miner } from ".";
 
 
 var pool: string[];
@@ -95,6 +96,7 @@ function getMempoolState(): UTXOSetInterface {
 
 function addTransactionToMempool(id: string): void {
     pool.push(id);
+    miner.update(pool);
 }
 
 function addRawTransactionToMempool(rawTransaction: TransactionInterface): void {
