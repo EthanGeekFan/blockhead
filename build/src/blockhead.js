@@ -45,8 +45,8 @@ class Blockhead {
             utils_1.logger.verbose(`Sent HELLO, GETPEERS, GETCHAINTIP message to the server.`);
         });
         // The server can also receive data from the client by reading from its socket.
-        socket.on('data', (chunk) => {
-            utils_1.logger.verbose(`Data received from client: ${chunk.toString()}.`);
+        socket.on('data', (chunk) => __awaiter(this, void 0, void 0, function* () {
+            utils_1.logger.verbose(`Data received from ${this.remoteAddress}:${this.remotePort}: ${chunk.toString()}.`);
             const deliminatedChunk = chunk.toString().split(deliminater);
             while (deliminatedChunk.length > 1) {
                 if (this.timeout) {
@@ -55,7 +55,7 @@ class Blockhead {
                 this.buffer += deliminatedChunk.shift();
                 try {
                     const message = JSON.parse(this.buffer);
-                    utils_1.logger.info(`Message received from client: ${(0, canonicalize_1.default)(message)}.`);
+                    utils_1.logger.info(`Message received from ${this.remoteAddress}:${this.remotePort}: ${(0, canonicalize_1.default)(message)}.`);
                     if (!this.handshake) {
                         if (message.type === constants_1.MESSAGES.HELLO.type) {
                             if (!semver.satisfies(message.version, "0.8.x")) {
@@ -149,16 +149,11 @@ class Blockhead {
                                     this.sendMessage(constants_1.MESSAGES.ERROR(constants_1.ERRORS.INVSTRUCT));
                                     break;
                                 }
-                                models_1.Transaction.findOne({ objectId: message.objectid }).exec().then((transaction) => {
-                                    if (!transaction) {
-                                        this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.objectid));
-                                    }
-                                });
-                                models_1.Block.findOne({ objectId: message.objectid }).exec().then((block) => {
-                                    if (!block) {
-                                        this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.objectid));
-                                    }
-                                });
+                                const tx = yield models_1.Transaction.findOne({ objectId: message.objectid }).exec();
+                                const block = yield models_1.Block.findOne({ objectId: message.objectid }).exec();
+                                if (!block && !tx) {
+                                    this.sendMessage(constants_1.MESSAGES.GETOBJECT(message.objectid));
+                                }
                                 break;
                             }
                         case constants_1.MESSAGES.OBJECT().type:
@@ -193,7 +188,6 @@ class Blockhead {
                                             // Broadcast to all peers
                                             (0, connections_1.getClients)().map((client) => {
                                                 client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));
-                                                utils_1.logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
                                         }
                                         else {
@@ -225,7 +219,6 @@ class Blockhead {
                                             // Broadcast to all peers
                                             (0, connections_1.getClients)().map((client) => {
                                                 client.sendMessage(constants_1.MESSAGES.IHAVEOBJECT(objectId));
-                                                utils_1.logger.info(`Sent IHAVEOBJECT message to client: ${client}.`);
                                             });
                                         }
                                         else {
@@ -294,7 +287,7 @@ class Blockhead {
                     socket.end();
                 }, TIMEOUT_MS);
             }
-        });
+        }));
         // When the client requests to end the TCP connection with the server, the server
         // ends the connection.
         socket.on('end', () => {
@@ -304,6 +297,7 @@ class Blockhead {
         // Don't forget to catch error, for your own sake.
         socket.on('error', (err) => {
             utils_1.logger.error(err);
+            (0, connections_1.removeClient)(this);
         });
     }
     sendMessage(message) {

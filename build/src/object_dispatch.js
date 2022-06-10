@@ -7,7 +7,7 @@ exports.reportBlock = exports.requestBlock = exports.reportTx = exports.requestT
 const constants_1 = require("./constants");
 const events_1 = __importDefault(require("events"));
 const dispatchQueue = [];
-const REQ_TIMEOUT = 60000; // ms
+const REQ_TIMEOUT = 3000; // ms
 class ObjectDispatch extends events_1.default {
     constructor() {
         super();
@@ -31,21 +31,7 @@ function requestTx(txid, sender) {
 }
 exports.requestTx = requestTx;
 function requestBlock(blockid, sender) {
-    // if (blockid === "0000000170ca89f3c6d0a4a6bf336f7bc3de0d3d68732c3ee671e4a200ecb6f1") {
-    //     logger.info("=== ENTERED HARDCODE AREA ===");
-    //     logger.info(`Found: ${getClients().find((head) => head.remoteAddress === "149.28.220.241")}`);
-    //     const hc = getClients().find((head) => {
-    //         logger.info(head.remoteAddress);
-    //         return head.remoteAddress === "149.28.220.241";
-    //     });
-    //     if (hc) {
-    //         hc.sendMessage(MESSAGES.GETOBJECT(blockid));
-    //         logger.info(`Sent: ${JSON.stringify(MESSAGES.GETOBJECT(blockid))} to ${hc.remoteAddress}`);
-    //     }
-    //     logger.info("=== EXITED HARDCODE AREA ===");
-    // } else {
     sender.sendMessage(constants_1.MESSAGES.GETOBJECT(blockid));
-    // }
     return new Promise((resolve, reject) => {
         dispatchQueue.push(blockid);
         const listener = (block) => {

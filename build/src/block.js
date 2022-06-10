@@ -19,6 +19,7 @@ const models_1 = require("./models");
 const object_dispatch_1 = require("./object_dispatch");
 const transaction_1 = require("./transaction");
 const mempool_1 = require("./mempool");
+const _1 = require(".");
 const COINBASE_REWARD = 50e12; // 50 bu = 50 * 10^12 pica bu
 function resolveTx(txid, sender) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -116,14 +117,22 @@ function blockValidator(block, sender) {
         }
         // valid block
         // save UTXO
-        const utxo = new models_1.UTXOSet({
-            blockid: blockHash,
-            utxos: prevUTXO.utxos,
-        });
-        yield utxo.save();
+        const savedUtxo = yield models_1.UTXOSet.findOne({ blockid: blockHash }).exec();
+        if (!savedUtxo) {
+            const utxo = new models_1.UTXOSet({
+                blockid: blockHash,
+                utxos: prevUTXO.utxos,
+            });
+            yield utxo.save();
+            utils_1.logger.info(`Saved new UTXO: ${JSON.stringify(utxo)}`);
+        }
         // save block
-        const newBlock = new models_1.Block(Object.assign({ objectId: blockHash, height: blockHeight }, block));
-        newBlock.save();
+        const savedNewBlock = yield models_1.Block.findOne({ objectId: blockHash }).exec();
+        if (!savedNewBlock) {
+            const newBlock = new models_1.Block(Object.assign({ objectId: blockHash, height: blockHeight }, block));
+            yield newBlock.save();
+            utils_1.logger.info(`Saved new block: ${JSON.stringify(newBlock)}`);
+        }
         // update chain tip if needed
         const chainTip = yield models_1.ChainTip.findOne({}).exec();
         if (!chainTip) {
@@ -132,6 +141,7 @@ function blockValidator(block, sender) {
         if (blockHeight > chainTip.height) {
             yield models_1.ChainTip.updateOne({}, { height: blockHeight, blockid: blockHash }).exec();
             yield (0, mempool_1.switchChainTip)(blockHash);
+            _1.miner.update((0, mempool_1.getMempool)(), blockHash, blockHeight);
             utils_1.logger.info(`Updated chain tip: ${JSON.stringify({ height: blockHeight, blockid: blockHash })}`);
         }
         utils_1.logger.info(`Saved new block: ${JSON.stringify((0, canonicalize_1.default)(block), null, 4)}.`);

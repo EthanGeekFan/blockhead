@@ -62,7 +62,7 @@ interface MinerResult {
 }
 
 async function initMiner() {
-    miner = await spawn(new Worker("./miner.ts"));
+    miner = await spawn(new Worker("./miner"));
     miner.output().subscribe(async ({ block_str, coinbase, coinbaseHash }: MinerResult) => {
         console.log(block_str);
         console.log(coinbase);

@@ -18,6 +18,7 @@ const canonicalize_1 = __importDefault(require("canonicalize"));
 const _ = require("lodash");
 const models_1 = require("./models");
 const transaction_1 = require("./transaction");
+const _1 = require(".");
 var pool;
 var mempoolState;
 function initMempool() {
@@ -109,6 +110,7 @@ function getMempoolState() {
 exports.getMempoolState = getMempoolState;
 function addTransactionToMempool(id) {
     pool.push(id);
+    _1.miner.update(pool);
 }
 exports.addTransactionToMempool = addTransactionToMempool;
 function addRawTransactionToMempool(rawTransaction) {

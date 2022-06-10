@@ -5,12 +5,13 @@ exports.createClient = void 0;
 const Net = require("net");
 const blockhead_1 = require("./blockhead");
 const utils_1 = require("./utils");
-function createClient(options) {
+function createClient(options, next = () => { }) {
     const client = new Net.Socket();
+    const head = new blockhead_1.Blockhead(client, options);
     client.connect(options, function () {
         utils_1.logger.info(`TCP connection established with the server with options: ${JSON.stringify(options)}.`);
+        next(head);
     });
-    const head = new blockhead_1.Blockhead(client, options);
     return head;
 }
 exports.createClient = createClient;
